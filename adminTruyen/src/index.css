@@ -1,0 +1,441 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+/* @custom-variant dark (&:is(.dark *)); */
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  /* Biến Animation tự custom */
+  --animate-fade-in-scale: fade-in-scale 1s ease-in-out infinite;
+  --font-Instrument-Sans: "Instrument Sans", "sans-serif";
+
+  @keyframes fade-in-scale {
+    0% {
+      opacity: 0;
+      scale: 0.1;
+    }
+
+    50% {
+      opacity: 1;
+      scale: 1;
+    }
+
+    100% {
+      opacity: 0;
+      scale: 0;
+    }
+  }
+}
+
+:root {
+  --menu-columns: 4;
+  --promotion-columns: 1;
+  --promotions-width: 20%;
+  /* Font size tự custom */
+  --fontsize-custom: calc(1.2 * 1.5rem);
+
+  --radius: 0.625rem;
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.141 0.005 285.823);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.141 0.005 285.823);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.141 0.005 285.823);
+  --primary: oklch(0.21 0.006 285.885);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.967 0.001 286.375);
+  --secondary-foreground: oklch(0.21 0.006 285.885);
+  --muted: oklch(0.967 0.001 286.375);
+  --muted-foreground: oklch(0.552 0.016 285.938);
+  --accent: oklch(0.967 0.001 286.375);
+  --accent-foreground: oklch(0.21 0.006 285.885);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.92 0.004 286.32);
+  --input: oklch(0.92 0.004 286.32);
+  --ring: oklch(0.705 0.015 286.067);
+  --chart-1: oklch(0.646 0.222 41.116);
+  --chart-2: oklch(0.6 0.118 184.704);
+  --chart-3: oklch(0.398 0.07 227.392);
+  --chart-4: oklch(0.828 0.189 84.429);
+  --chart-5: oklch(0.769 0.188 70.08);
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.141 0.005 285.823);
+  --sidebar-primary: oklch(0.21 0.006 285.885);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.967 0.001 286.375);
+  --sidebar-accent-foreground: oklch(0.21 0.006 285.885);
+  --sidebar-border: oklch(0.92 0.004 286.32);
+  --sidebar-ring: oklch(0.705 0.015 286.067);
+}
+
+.dark {
+  --background: oklch(0.141 0.005 285.823);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.21 0.006 285.885);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.21 0.006 285.885);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.92 0.004 286.32);
+  --primary-foreground: oklch(0.21 0.006 285.885);
+  --secondary: oklch(0.274 0.006 286.033);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.274 0.006 286.033);
+  --muted-foreground: oklch(0.705 0.015 286.067);
+  --accent: oklch(0.274 0.006 286.033);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.552 0.016 285.938);
+  --chart-1: oklch(0.488 0.243 264.376);
+  --chart-2: oklch(0.696 0.17 162.48);
+  --chart-3: oklch(0.769 0.188 70.08);
+  --chart-4: oklch(0.627 0.265 303.9);
+  --chart-5: oklch(0.645 0.246 16.439);
+  --sidebar: oklch(0.21 0.006 285.885);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.488 0.243 264.376);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.274 0.006 286.033);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.552 0.016 285.938);
+}
+
+@layer base {
+
+  /* -[MAIN LAYOUT CUSTOM]----------------------------------------------------------------------- */
+  /* 1.  Container Custom: */
+  .container-custom {
+    /* xl:px-[50px] */
+    @apply px-[15px] overflow-hidden mx-auto 2xl:max-w-7xl;
+  }
+
+  /* -[MAIN LAYOUT CUSTOM - END]----------------------------------------------------------------- */
+
+  /* Icon */
+  .icon-custom {
+    /* opacity: 0; */
+    transform: translate(-4px, -50%);
+    @apply w-4 h-4 transition-all absolute -right-1 top-2/4
+  }
+
+  /* Font size custom */
+  .font-custom {
+    font-size: var(--fontsize-custom);
+  }
+
+  /* Scrollbar custom*/
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    /* Firefox: "auto", "thin", or "none" */
+    scrollbar-color: rgba(95, 95, 95, 0.4) transparent;
+  }
+
+  /* Button Hover */
+  .btn {
+    @apply text-black hover:before:bg-black relative h-10 overflow-hidden border border-white rounded-4xl bg-white px-3 shadow-2xl transition-all before:absolute before:bottom-0 before:left-0 before:top-0 before:z-0 before:h-full before:w-0 before:transition-all before:duration-500 hover:text-white hover:before:left-0 hover:before:w-full;
+  }
+
+  /* Chỉnh ảnh png thành màu đỏ */
+  .filter-red {
+    filter: brightness(0) saturate(100%) invert(12%) sepia(100%) saturate(7476%) hue-rotate(-1deg) brightness(101%) contrast(113%);
+  }
+
+  /* -[Mega Menu Grid]--------------------------------------------------------------------------- */
+  .mega-menu__column:first-child {
+    @apply pt-8 pl-0 pr-8 pb-15 border-r-[1px] border-gray-300;
+  }
+
+  .mega-menu__column {
+    @apply pt-8 px-8 pb-15 border-r-[1px] border-gray-300;
+  }
+
+  /* Nav custom grid */
+  .nav-custom-grid {
+    display: grid;
+    grid-template-columns: repeat(var(--menu-columns, 3), 1fr);
+    min-width: 20%;
+  }
+
+  /* Promotion Column */
+  .nav-promotion-custom {
+    flex: 0 0 var(--promotions-width);
+  }
+
+  .nav-promotion-custom-grid {
+    display: grid;
+    grid-template-columns: repeat(var(--promotion-columns), 1fr);
+  }
+
+  /* Thẻ Banner trên nav */
+  .content-overlay {
+    @apply flex flex-col items-center absolute top-0 left-0 bottom-0 right-0 text-white p-8 bg-transparent
+  }
+
+  /* -[Mega Menu Grid - END]--------------------------------------------------------------------- */
+
+  /* -[Hiệu ứng cho các ngôi sao lấp lánh trên navbar]---------------------------------------- */
+  /* Animation Delay */
+  .animate-fade-in-scale-delay-1 {
+    animation: fade-in-scale 1s ease-in-out infinite;
+    animation-delay: 3s;
+  }
+
+  .animate-fade-in-scale-delay-2 {
+    animation: fade-in-scale 1.5s ease-in-out infinite;
+    animation-delay: 2s;
+  }
+
+  .animate-fade-in-scale-delay-3 {
+    animation: fade-in-scale 2s ease-in-out infinite;
+    animation-delay: 1s;
+  }
+
+  /* -[Hiệu ứng cho các ngôi sao lấp lánh trên navbar - END]---------------------------------- */
+
+  /* -[Hiệu ứng hover các chữ]---------------------------------------------------------------- */
+  /* Hover Underline -> tự custom */
+  .underline-hover-text {
+    @apply relative cursor-pointer font-bold;
+  }
+
+  .underline-hover-text::after {
+    content: '';
+    @apply absolute w-full h-[1px] bg-black bottom-[-10px] left-0 scale-x-0 origin-bottom-right transition-transform duration-300;
+  }
+
+  .underline-hover-text:hover::after {
+    @apply scale-x-100 origin-bottom-left;
+  }
+
+  /* -[Hiệu ứng hover các chữ - END]---------------------------------------------------------- */
+
+  /* -[Hiệu ứng Zoom Img trong Hero Section]-------------------------------------------------- */
+  /* ZoomInSlow Effect */
+  @keyframes zoomInSlow {
+    0% {
+      transform: scale(1.1);
+      /* Ảnh bắt đầu phóng to 20% */
+      opacity: 0;
+      /* Ảnh từ từ hiện */
+    }
+
+    100% {
+      transform: scale(1);
+      /* Ảnh thu lại kích thước ban đầu */
+      opacity: 1;
+      /* Ảnh hoàn toàn rõ nét */
+    }
+  }
+
+  .zoom-in-slow {
+    animation: zoomInSlow 1s ease-out forwards;
+    /* Chạy animation trong 3s, easing mượt mà */
+    object-fit: cover;
+    /* Giữ ảnh không bị méo khi zoom */
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    /* Giấu phần ngoài khung */
+  }
+
+  /* Bullet Pagination Effect */
+  @keyframes ProgressFill {
+    0% {
+      transform: scaleX(0);
+    }
+
+    100% {
+      transform: scaleX(1);
+    }
+  }
+
+  .hero-swiper-ct .swiper-pagination-bullet {
+    @apply !bg-white/50 !w-2 !rounded-full transition-all duration-500 relative;
+    /*  position: ; */
+    opacity: 1 !important;
+    overflow: hidden;
+  }
+
+  .hero-swiper-ct .swiper-pagination-bullet-active {
+    @apply !w-10 !rounded-md !bg-white/50 transition-all duration-500;
+  }
+
+  /* Thanh progress chạy bên trong */
+  .hero-swiper-ct .swiper-pagination-bullet-active::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    background-color: white;
+    /* màu cyan-500 */
+    transform: scaleX(0);
+    transform-origin: left;
+    animation: ProgressFill 3s linear forwards;
+    width: 100%;
+    z-index: 1;
+  }
+
+  /* -[Hiệu ứng Zoom Img trong Hero Section - END]-------------------------------------------- */
+
+
+  /* -[FOOTER]-------------------------------------------------------------------------------- */
+  @media (min-width: 1024px) {
+    .detailsCustom {
+      pointer-events: none;
+      /* Vô hiệu hóa khả năng đóng/mở */
+    }
+
+    .detailsCustom[open] {
+      pointer-events: auto;
+      /* Đảm bảo nó luôn mở */
+    }
+  }
+
+  /* -[FOOTER - END]-------------------------------------------------------------------------- */
+
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50 [scrollbar-color:_#cbd5e1_transparent] dark:[scrollbar-color:_#334155_transparent];
+  }
+
+  body {
+    @apply bg-background text-foreground [scrollbar-color:_#cbd5e1_transparent] dark:[scrollbar-color:_#334155_transparent];
+  }
+}
+
+/* [ADMIN CSS]-------------------------------------------------------------- */
+@layer components {
+  .sidebar-group {
+    @apply flex w-full flex-col gap-y-2;
+  }
+
+  /* text-ellipsis để ẩn chữ dài quá */
+  .sidebar-group-title {
+    @apply overflow-hidden text-ellipsis text-sm font-medium text-slate-600 dark:text-slate-400;
+  }
+
+  .sidebar-item {
+    @apply flex h-[40px] w-full shrink-0 items-center gap-x-3 rounded-lg p-3 text-base font-medium text-slate-900 transition-colors dark:text-slate-50 hover:bg-blue-50 dark:hover:bg-blue-950;
+
+    &.active {
+      @apply bg-blue-500 text-slate-50 dark:bg-blue-600;
+    }
+  }
+
+  .title {
+    @apply text-3xl font-semibold text-slate-900 transition-colors dark:text-slate-50
+  }
+
+  .btn-ghost {
+    @apply flex h-10 shrink-0 items-center justify-center gap-x-2 rounded-lg p-2 text-slate-400 transition-colors hover:bg-blue-50 hover:text-slate-500 dark:hover:bg-blue-950 dark:hover:text-slate-300;
+  }
+
+  .input {
+    @apply hidden h-10 shrink-0 items-center gap-x-2 rounded-lg border border-slate-300 px-2 text-base text-slate-900 transition-colors has-[input:focus]:border-blue-500 dark:focus:border-blue-600 md:flex md:w-auto lg:w-80;
+  }
+
+  /* Khu vực sửa card theo dõi report */
+  .card {
+    @apply flex flex-col gap-y-4 rounded-lg border border-slate-300 bg-white p-4 transition-colors dark:border-slate-700 dark:bg-slate-900;
+  }
+
+  .card-header {
+    @apply flex items-center gap-x-2
+  }
+
+  .card-title {
+    @apply font-medium text-slate-900 dark:text-slate-50 transition-colors
+  }
+
+  .card-body {
+    @apply flex flex-col gap-y-2 rounded-lg p-4
+  }
+
+  /* Khu vực sửa Format Table */
+  .table {
+    @apply h-full w-full;
+  }
+
+  .table-header {
+    @apply sticky top-0 bg-slate-200 transition-[background] dark:bg-slate-800;
+  }
+
+  .table-header:first-child {
+    @apply rounded-tl-md rounded-bl-md;
+  }
+
+  .table-header:last-child {
+    @apply rounded-tr-md rounded-br-md;
+  }
+
+  .table-row{
+    @apply border-b border-slate-300 transition-colors last:border-none dark:border-slate-700;
+  }
+
+  .table-head {
+    @apply h-12 px-4 text-start first:rounded-tl-sm first:rounded-bl-sm last:rounded-tr-sm last:rounded-br-sm;
+  }
+  .table-cell{
+    @apply w-fit whitespace-nowrap p-4 font-medium text-ellipsis;
+  }
+
+  /* . Khu vực sửa Tooltip */
+  .recharts-default-tooltip {
+    @apply !rounded-lg !border !border-slate-300 !bg-white !transition-colors dark:!border-slate-700 dark:!bg-slate-900;
+  }
+  .recharts-tooltip-label {
+    @apply text-base font-medium text-shadow-slate-900 dark:text-slate-50
+  }
+  .recharts-tooltip-item {
+    @apply text-base font-medium !text-blue-500 dark:!text-blue-600;
+  }
+
+  /* Khu vực sửa footer */
+  .link{
+    @apply text-base font-medium text-slate-900 transition-colors hover:underline dark:text-slate-50
+  }
+
+}
+
+/* [ADMIN CSS - END]-------------------------------------------------------- */

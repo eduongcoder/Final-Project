@@ -37,14 +37,15 @@ public class AuthorService {
 	IAuthorRepository authorRepository;
 	UploadFileService uploadFileService;
 	INovelMapper novelMapper;
-	public List<AuthorRespone> getAll(){
-		return authorRepository.findAll().stream().map(t -> authorMapper.toAuthorRespone(t)).toList() ;
+
+	public List<AuthorRespone> getAll() {
+		return authorRepository.findAll().stream().map(t -> authorMapper.toAuthorRespone(t)).toList();
 	}
-	
+
 	public AuthorRespone getAuthor(String idAuthor) {
-		Author author=authorRepository.findById(idAuthor).get();
-		Set<Novel> novels= authorRepository.getNovelByIdAuthor(idAuthor);
-		AuthorRespone authorRespone=authorMapper.toAuthorRespone(author);
+		Author author = authorRepository.findById(idAuthor).get();
+		Set<Novel> novels = authorRepository.getNovelByIdAuthor(idAuthor);
+		AuthorRespone authorRespone = authorMapper.toAuthorRespone(author);
 		authorRespone.setNovels(novels);
 		return authorRespone;
 	}
@@ -52,7 +53,7 @@ public class AuthorService {
 	public AuthorRespone createAuthor(AuthorCreationRequest request, MultipartFile file) throws IOException {
 		Author author = authorMapper.toAuthor(request);
 
-		if (!file.isEmpty()) {
+		if (file != null && !file.isEmpty()) {
 			UploadFileRespone uploadFileRespone = uploadFileService.uploadFile(file);
 			author.setImageAuthor(uploadFileRespone.getUrl());
 			author.setPublicIDAuthor(uploadFileRespone.getPublic_id());
@@ -75,7 +76,12 @@ public class AuthorService {
 
 		Set<Novel> novels = new HashSet<>(novelRepository.findAllById(request.getNovels()));
 
-		if (!file.isEmpty()) {
+		if (file != null && !file.isEmpty()) {
+			
+			if (author.getPublicIDAuthor() !=null &&!author.getPublicIDAuthor().isEmpty()) {
+				uploadFileService.deleteImage(author.getPublicIDAuthor());
+			}
+			
 			UploadFileRespone uploadFileRespone = uploadFileService.uploadFile(file);
 
 			author.setImageAuthor(uploadFileRespone.getUrl());
@@ -89,9 +95,7 @@ public class AuthorService {
 			novelRepository.save(novel);
 		}
 
-		if (!author.getPublicIDAuthor().isEmpty()) {
-			uploadFileService.deleteImage(author.getPublicIDAuthor());
-		}
+		
 
 		return authorMapper.toAuthorRespone(author);
 	}

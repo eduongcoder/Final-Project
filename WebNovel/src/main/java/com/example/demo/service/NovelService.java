@@ -26,17 +26,17 @@ import lombok.experimental.FieldDefaults;
 
 @Service
 @RequiredArgsConstructor
-@FieldDefaults(level = AccessLevel.PRIVATE,makeFinal = true)
+@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class NovelService {
 	INovelRepository novelRepository;
 	INovelMapper novelMapper;
 	IAuthorRepository authorRepository;
 	UploadFileService uploadFileService;
 
-	public List<NovelRespone> getAll(){
-		return novelRepository.findAll().stream().map(t -> novelMapper.toNovelRespone(t)).toList() ;
+	public List<NovelRespone> getAll() {
+		return novelRepository.findAll().stream().map(t -> novelMapper.toNovelRespone(t)).toList();
 	}
-	
+
 	public NovelRespone getNovel(String idNovel) {
 		return novelMapper.toNovelRespone(novelRepository.findById(idNovel).get());
 	}
@@ -46,7 +46,7 @@ public class NovelService {
 		Set<Author> authors = new HashSet<>(authorRepository.findAllById(request.getAuthors()));
 		novel.setAuthors(authors);
 
-		if (!file.isEmpty()) {
+		if (file != null && !file.isEmpty()) {
 			UploadFileRespone uploadFileRespone = uploadFileService.uploadFile(file);
 			novel.setImageNovel(uploadFileRespone.getUrl());
 			novel.setPublicIDNovel(uploadFileRespone.getPublic_id());
@@ -61,10 +61,12 @@ public class NovelService {
 		Set<Author> authors = new HashSet<>(authorRepository.findAllById(request.getAuthors()));
 		novel.setAuthors(authors);
 
-		if (!novel.getPublicIDNovel().isEmpty()) {
-			uploadFileService.deleteImage(novel.getPublicIDNovel());
-		}
-		if (!file.isEmpty()) {
+		if (file != null && !file.isEmpty()) {
+
+			if (novel.getPublicIDNovel() != null && !novel.getPublicIDNovel().isEmpty()) {
+				uploadFileService.deleteImage(novel.getPublicIDNovel());
+			}
+
 			UploadFileRespone uploadFileRespone = uploadFileService.uploadFile(file);
 			novel.setImageNovel(uploadFileRespone.getUrl());
 			novel.setPublicIDNovel(uploadFileRespone.getPublic_id());

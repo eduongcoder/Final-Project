@@ -1,0 +1,98 @@
+import React, { useEffect, useRef } from "react";
+import { Swiper, SwiperSlide } from "swiper/react";
+import { Navigation, Pagination, Autoplay } from "swiper/modules";
+import "swiper/css";
+import "swiper/css/navigation";
+import "swiper/css/pagination";
+
+const Test = () => {
+  const circleRef = useRef(null);
+  const progressContent = useRef(null);
+  const requestRef = useRef();
+  const startTimeRef = useRef();
+  const totalDuration = 10000; // 2.5s
+  const radius = 20;
+  const circumference = 2 * Math.PI * radius;
+
+  const animateProgress = () => {
+    const now = Date.now();
+    const elapsed = now - startTimeRef.current;
+    const progress = Math.min(elapsed / totalDuration, 1);
+
+    if (circleRef.current) {
+      const offset = circumference * (1 - progress);
+      circleRef.current.style.strokeDashoffset = offset;
+    }
+
+    if (progressContent.current) {
+      const secondsLeft = Math.ceil((totalDuration - elapsed) / 1000);
+      progressContent.current.textContent = `${secondsLeft}s`;
+    }
+
+    if (progress < 1) {
+      requestRef.current = requestAnimationFrame(animateProgress);
+    }
+  };
+
+  const resetProgress = () => {
+    if (requestRef.current) cancelAnimationFrame(requestRef.current);
+    startTimeRef.current = Date.now();
+    requestRef.current = requestAnimationFrame(animateProgress);
+  };
+
+  useEffect(() => {
+    resetProgress(); // first time start
+
+    return () => {
+      if (requestRef.current) cancelAnimationFrame(requestRef.current);
+    };
+  }, []);
+
+  return (
+    <div className="relative w-full h-screen bg-gray-200">
+      <Swiper
+        modules={[Navigation, Pagination, Autoplay]}
+        spaceBetween={30}
+        centeredSlides={true}
+        autoplay={{
+          delay: totalDuration,
+          disableOnInteraction: false,
+        }}
+        pagination={{
+          clickable: true,
+        }}
+        navigation={true}
+        onSlideChange={() => resetProgress()}
+        className="h-full"
+      >
+        {[...Array(9)].map((_, index) => (
+          <SwiperSlide
+            key={index}
+            className="flex items-center justify-center text-xl font-bold bg-white"
+          >
+            Slide {index + 1}
+          </SwiperSlide>
+        ))}
+      </Swiper>
+
+      <div className="absolute right-4 bottom-4 z-10 w-12 h-12 flex items-center justify-center font-bold text-blue-500">
+        <svg viewBox="0 0 48 48" className="absolute w-full h-full rotate-[-90deg]" strokeWidth="4">
+          <circle
+            ref={circleRef}
+            cx="24"
+            cy="24"
+            r="20"
+            fill="none"
+            stroke="currentColor"
+            strokeDasharray={circumference}
+            strokeDashoffset={circumference}
+            className="transition-all duration-0"
+          />
+        </svg>
+        <span ref={progressContent}></span>
+      </div>
+    </div>
+  );
+};
+
+export default Test;
