@@ -2,8 +2,6 @@ package com.example.demo.controller;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.Set;
-
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -19,7 +17,6 @@ import com.example.demo.dto.request.ChapterCreationRequest;
 import com.example.demo.dto.request.ChapterUpdateRequest;
 import com.example.demo.dto.respone.ApiRespone;
 import com.example.demo.dto.respone.ChapterRespone;
-import com.example.demo.entity.Chapter;
 import com.example.demo.service.ChapterService;
 
 import lombok.AccessLevel;
@@ -40,12 +37,6 @@ public class ChapterController {
 	public ApiRespone<List<ChapterRespone>> getAll(@PathVariable String idNovel) {
 		return ApiRespone.<List<ChapterRespone>>builder().result(chapterService.getAllChapter(idNovel)).build();
 	}
-
-//	@GetMapping(value = "/getAll/{idNovel}")
-//	public ApiRespone<Set<Chapter>> getAll(@PathVariable String idNovel) {
-//		return ApiRespone.<Set<Chapter>>builder().result(chapterService.getAllChapter(idNovel)).build();
-//	}
-
 	
 	@GetMapping(value = "/{idChapter}")
 	public ApiRespone<ChapterRespone> getChapterById(@PathVariable Integer idChapter) {
@@ -58,8 +49,8 @@ public class ChapterController {
 	}
 	
 	@PutMapping(value = "/update",consumes = {"multipart/form-data"})
-	public ApiRespone<ChapterRespone> updateChapter(@RequestPart ChapterUpdateRequest request,@RequestParam(required = false) MultipartFile audioFile) throws IOException {
-		return ApiRespone.<ChapterRespone>builder().result(chapterService.updateChapter(request,audioFile)).build();
+	public ApiRespone<ChapterRespone> updateChapter(@RequestPart ChapterUpdateRequest request,@RequestParam(required = false) MultipartFile textFile) throws IOException {
+		return ApiRespone.<ChapterRespone>builder().result(chapterService.updateChapter(request,textFile)).build();
 	}
 	
 	@DeleteMapping(value = "/{idChapter}")

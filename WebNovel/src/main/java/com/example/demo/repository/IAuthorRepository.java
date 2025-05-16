@@ -18,13 +18,6 @@ public interface IAuthorRepository extends JpaRepository<Author, String>{
 	Set<Novel> getNovelByIdAuthor(@Param("idAuthor") String idAuthor);
 
 
-	
-//	@Query("SELECT a.novels FROM Author a WHERE a.id = :id")
-//	List<Novel> getNovelByIdAuthor(@Param("id") String id);
-
-
-//	@Query("SELECT a FROM Author a ")
-//	List<Author> getNovelByIdAuthor();
  
 
  

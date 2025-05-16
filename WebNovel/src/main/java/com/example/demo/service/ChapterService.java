@@ -2,12 +2,7 @@ package com.example.demo.service;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Optional;
-import java.util.Set;
-
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -36,7 +31,8 @@ public class ChapterService {
 	IChapterMapper chapterMapper;
 	IChapterRepository chapterRepository;
 	INovelRepository novelRepository;
-
+	TextService textService;
+	
 	public List<ChapterRespone> getAllChapter(String idNovel) {
 
 		return chapterRepository.findByNovel_IdNovel(idNovel).stream().map(t -> chapterMapper.toChapterRespone(t))

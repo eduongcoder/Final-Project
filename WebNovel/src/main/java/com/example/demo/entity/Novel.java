@@ -52,6 +52,6 @@ public class Novel {
 	@ManyToMany
 	Set<Category> categories = new HashSet<>();
 	
-	@OneToMany(mappedBy = "novel",cascade = CascadeType.ALL)
+	@OneToMany(mappedBy = "novel",cascade = CascadeType.ALL,orphanRemoval = true)
 	Set<Chapter> chapters=new HashSet<>();
 }
