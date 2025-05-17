@@ -1,5 +1,5 @@
 import { FooterAdmin } from "@/components/Admin/FooterAdmin";
-import { overviewData, recentSalesData, topProducts } from "@/constants";
+import { overviewData, recentSalesData } from "@/constants";
 import { useTheme } from "@/context/ThemeContext";
 import { Package, PencilLine, Star, Trash, TrendingUp } from "lucide-react";
 import React from "react";
@@ -175,15 +175,13 @@ const Dashboard = () => {
                 </div>
             </div>
 
-            <div className="card">
+            {/* <div className="card">
                 <div className="card-header">
                     <div className="card-title">Top Orders</div>
                 </div>
-                {/* Product Table */}
                 <div className="card-body p-0">
                     <div className="relative h-[500px] w-full shrink-0 overflow-auto rounded-none [scrollbar-width:_thin]">
                         <table className="table">
-                            {/* thead.table-header>tr.table-row>th.table-head*6 */}
                             <thead className="table-header">
                                 <tr className="table-row">
                                     <th className="table-head"></th>
@@ -242,10 +240,10 @@ const Dashboard = () => {
                         </table>
                     </div>
                 </div>
-            </div>
+            </div> */}
 
-<AuthorManager/>
-<NovelManager/>
+            <AuthorManager/>
+            <NovelManager/>
             <FooterAdmin/>
         </div>
     );

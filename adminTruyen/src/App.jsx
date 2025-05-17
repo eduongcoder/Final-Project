@@ -8,7 +8,7 @@ function App() {
   return (
         <Provider store={store}>
 
-      <RouterSetup/>  {/* 3. Thiết lập URL */}  
+      <RouterSetup/> 
     </Provider>
   )
 }

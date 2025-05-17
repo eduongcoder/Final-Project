@@ -1,4 +1,4 @@
-import { ChartColumn, Home, NotepadText, Package, PackagePlus, Settings, ShoppingBag, UserCheck, UserPlus, Users } from "lucide-react";
+import { ChartColumn, Home, NotepadText, Package, PackagePlus, Settings, ShoppingBag, UserCheck, UserPlus, Users ,CheckCircle,PlusCircle,CreditCard,Clock,MessageSquare} from "lucide-react";
 
 import ProfileImage from "@/assets/profile-image.jpg";
 import ProductImage from "@/assets/product-image.jpg";
@@ -17,59 +17,79 @@ export const navbarLinks = [
     },
 
     // Trang quản lý Order Admin
+    // {
+    //     title: "Orders",
+    //     links: [
+    //         {
+    //             label: "All Orders",
+    //             icon: Users,
+    //             path: "/order",
+    //         },
+    //         {
+    //             label: "New customer",
+    //             icon: UserPlus,
+    //             path: "/new-customer",
+    //         },
+    //         {
+    //             label: "Verified customers",
+    //             icon: UserCheck,
+    //             path: "/verified-customers",
+    //         },
+    //     ],
+    // },
     {
-        title: "Orders",
-        links: [
-            {
-                label: "All Orders",
-                icon: Users,
-                path: "/order",
-            },
-            {
-                label: "New customer",
-                icon: UserPlus,
-                path: "/new-customer",
-            },
-            {
-                label: "Verified customers",
-                icon: UserCheck,
-                path: "/verified-customers",
-            },
-        ],
-    },
+    title: "Comments",
+    links: [
+        {
+            label: "All Comments",
+            icon: MessageSquare, // Icon for comments/messages
+            path: "/comments",
+        },
+        {
+            label: "Pending Comments",
+            icon: Clock, // Icon for pending/awaiting approval
+            path: "/pending-comments",
+        },
+        {
+            label: "Approved Comments",
+            icon: CheckCircle, // Icon for verified/approved
+            path: "/approved-comments",
+        },
+    ],
+},
 
     {
-        title: "Customers",
+        title: "Payments",
         links: [
             {
-                label: "Customers",
-                icon: Users,
-                path: "/customers",
+                label: "Payments",
+                icon: CreditCard,
+                path: "/payments",
             },
             {
-                label: "New customer",
-                icon: UserPlus,
-                path: "/new-customer",
+                label: "New payment",
+                icon: PlusCircle,
+                path: "/new-payment",
             },
             {
-                label: "Verified customers",
-                icon: UserCheck,
-                path: "/verified-customers",
+                label: "Verified payments",
+                icon: CheckCircle,
+                path: "/verified-payments",
             },
         ],
     },
     {
-        title: "Products",
+        title: "Novels",
         links: [
             {
-                label: "Products",
+                label: "Novels",
                 icon: Package,
-                path: "/products",
+                path: "/Novels",
             },
             {
-                label: "New product",
+                label: "New Novels",
                 icon: PackagePlus,
-                path: "/new-product",
+                path: "/new-Novels",
             },
             {
                 label: "Inventory",
@@ -193,95 +213,95 @@ export const recentSalesData = [
     },
 ];
 
-export const topProducts = [
-    {
-        number: 1,
-        name: "Wireless Headphones",
-        image: ProductImage,
-        description: "High-quality noise-canceling wireless headphones.",
-        price: 99.99,
-        status: "In Stock",
-        rating: 4.5,
-    },
-    {
-        number: 2,
-        name: "Smartphone",
-        image: ProductImage,
-        description: "Latest 5G smartphone with excellent camera features.",
-        price: 799.99,
-        status: "In Stock",
-        rating: 4.7,
-    },
-    {
-        number: 3,
-        name: "Gaming Laptop",
-        image: ProductImage,
-        description: "Powerful gaming laptop with high-end graphics.",
-        price: 1299.99,
-        status: "In Stock",
-        rating: 4.8,
-    },
-    {
-        number: 4,
-        name: "Smartwatch",
-        image: ProductImage,
-        description: "Stylish smartwatch with fitness tracking features.",
-        price: 199.99,
-        status: "Out of Stock",
-        rating: 4.4,
-    },
-    {
-        number: 5,
-        name: "Bluetooth Speaker",
-        image: ProductImage,
-        description: "Portable Bluetooth speaker with deep bass sound.",
-        price: 59.99,
-        status: "In Stock",
-        rating: 4.3,
-    },
-    {
-        number: 6,
-        name: "4K Monitor",
-        image: ProductImage,
-        description: "Ultra HD 4K monitor with stunning color accuracy.",
-        price: 399.99,
-        status: "In Stock",
-        rating: 4.6,
-    },
-    {
-        number: 7,
-        name: "Mechanical Keyboard",
-        image: ProductImage,
-        description: "Mechanical keyboard with customizable RGB lighting.",
-        price: 89.99,
-        status: "In Stock",
-        rating: 4.7,
-    },
-    {
-        number: 8,
-        name: "Wireless Mouse",
-        image: ProductImage,
-        description: "Ergonomic wireless mouse with precision tracking.",
-        price: 49.99,
-        status: "In Stock",
-        rating: 4.5,
-    },
-    {
-        number: 9,
-        name: "Action Camera",
-        image: ProductImage,
-        description: "Waterproof action camera with 4K video recording.",
-        price: 249.99,
-        status: "In Stock",
-        rating: 4.8,
-    },
-    {
-        number: 10,
-        name: "External Hard Drive",
-        image: ProductImage,
-        description: "Portable 2TB external hard drive for data storage.",
-        price: 79.99,
-        status: "Out of Stock",
-        rating: 4.5,
-    },
-];
+// export const topProducts = [
+//     {
+//         number: 1,
+//         name: "Wireless Headphones",
+//         image: ProductImage,
+//         description: "High-quality noise-canceling wireless headphones.",
+//         price: 99.99,
+//         status: "In Stock",
+//         rating: 4.5,
+//     },
+//     {
+//         number: 2,
+//         name: "Smartphone",
+//         image: ProductImage,
+//         description: "Latest 5G smartphone with excellent camera features.",
+//         price: 799.99,
+//         status: "In Stock",
+//         rating: 4.7,
+//     },
+//     {
+//         number: 3,
+//         name: "Gaming Laptop",
+//         image: ProductImage,
+//         description: "Powerful gaming laptop with high-end graphics.",
+//         price: 1299.99,
+//         status: "In Stock",
+//         rating: 4.8,
+//     },
+//     {
+//         number: 4,
+//         name: "Smartwatch",
+//         image: ProductImage,
+//         description: "Stylish smartwatch with fitness tracking features.",
+//         price: 199.99,
+//         status: "Out of Stock",
+//         rating: 4.4,
+//     },
+//     {
+//         number: 5,
+//         name: "Bluetooth Speaker",
+//         image: ProductImage,
+//         description: "Portable Bluetooth speaker with deep bass sound.",
+//         price: 59.99,
+//         status: "In Stock",
+//         rating: 4.3,
+//     },
+//     {
+//         number: 6,
+//         name: "4K Monitor",
+//         image: ProductImage,
+//         description: "Ultra HD 4K monitor with stunning color accuracy.",
+//         price: 399.99,
+//         status: "In Stock",
+//         rating: 4.6,
+//     },
+//     {
+//         number: 7,
+//         name: "Mechanical Keyboard",
+//         image: ProductImage,
+//         description: "Mechanical keyboard with customizable RGB lighting.",
+//         price: 89.99,
+//         status: "In Stock",
+//         rating: 4.7,
+//     },
+//     {
+//         number: 8,
+//         name: "Wireless Mouse",
+//         image: ProductImage,
+//         description: "Ergonomic wireless mouse with precision tracking.",
+//         price: 49.99,
+//         status: "In Stock",
+//         rating: 4.5,
+//     },
+//     {
+//         number: 9,
+//         name: "Action Camera",
+//         image: ProductImage,
+//         description: "Waterproof action camera with 4K video recording.",
+//         price: 249.99,
+//         status: "In Stock",
+//         rating: 4.8,
+//     },
+//     {
+//         number: 10,
+//         name: "External Hard Drive",
+//         image: ProductImage,
+//         description: "Portable 2TB external hard drive for data storage.",
+//         price: 79.99,
+//         status: "Out of Stock",
+//         rating: 4.5,
+//     },
+// ];

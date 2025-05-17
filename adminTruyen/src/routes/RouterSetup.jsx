@@ -7,10 +7,11 @@ import { getAllNovels } from "@/redux/novelSlice";
 // Import layout & pages
 import AdminLayouts from "@/pages/layouts/AdminLayouts";
 import {
-  Dashboard, CategoryManagement, ProductManagement,
-  OrderManagement, AnalyticsReport, CustomerManagement,
-  PromotionManagement, PageNotFound
+  Dashboard, CategoryManagement, NovelManagement,
+  CommentManagement, AnalyticsReport, CustomerManagement,
+  PaymentManagement
 } from "../pages";
+import PageNotFound from "@/pages/PageNotFound";
 
 // Preload data wrapper
 const PreloadDataWrapper = ({ children }) => {
@@ -35,11 +36,11 @@ const router = createBrowserRouter([
     children: [
       { index: true, element: <Dashboard /> },
       { path: "category", element: <CategoryManagement /> },
-      { path: "product", element: <ProductManagement /> },
-      { path: "order", element: <OrderManagement /> },
+      { path: "novels", element: <NovelManagement /> },
+      { path: "payment", element: <PaymentManagement /> },
       { path: "analyticsReport", element: <AnalyticsReport /> },
       { path: "customer", element: <CustomerManagement /> },
-      { path: "promotion", element: <PromotionManagement /> },
+      { path: "comment", element: <CommentManagement /> },
       { path: "*", element: <PageNotFound /> },
     ],
   },

@@ -24,7 +24,7 @@ const AppSidebar = forwardRef(({ collapsed }, ref) => {
                     width={35}
                     height={35}
                 />
-                {!collapsed && <p className="text-lg font-bold whitespace-nowrap text-slate-900 transition-colors dark:text-slate-50">Tom's Admin</p>}
+                {!collapsed && <p className="text-lg font-bold whitespace-nowrap text-slate-900 transition-colors dark:text-slate-50">Web Truyện Admin</p>}
             </div>
 
             <div className="flex w-full flex-col gap-y-4 overflow-x-hidden overflow-y-auto p-3 [scrollbar-width:_thin]">
