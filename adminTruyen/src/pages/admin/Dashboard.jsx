@@ -5,7 +5,8 @@ import { Package, PencilLine, Star, Trash, TrendingUp } from "lucide-react";
 import React from "react";
 import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis ,LineChart} from "recharts";
 import AuthorManager from "./authorManager"
-import NovelManager from "./NovelManager";
+import NovelManager from "./NovelManagement";
+import CategorisManagement from "./CategoryManagement";
 const Dashboard = () => {
     const { theme } = useTheme();
 
@@ -244,6 +245,7 @@ const Dashboard = () => {
 
             <AuthorManager/>
             <NovelManager/>
+            <CategorisManagement/>
             <FooterAdmin/>
         </div>
     );

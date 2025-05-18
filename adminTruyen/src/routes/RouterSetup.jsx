@@ -3,7 +3,7 @@ import { useDispatch } from "react-redux";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import { getAllAuthors } from "@/redux/authorSlice";
 import { getAllNovels } from "@/redux/novelSlice";
-
+import { getAllCategories } from "@/redux/categorySlice";
 // Import layout & pages
 import AdminLayouts from "@/pages/layouts/AdminLayouts";
 import {
@@ -20,6 +20,7 @@ const PreloadDataWrapper = ({ children }) => {
   useEffect(() => {
     dispatch(getAllAuthors());
     dispatch(getAllNovels());
+    dispatch(getAllCategories());
   }, [dispatch]);
 
   return children;
@@ -35,7 +36,7 @@ const router = createBrowserRouter([
     ),
     children: [
       { index: true, element: <Dashboard /> },
-      { path: "category", element: <CategoryManagement /> },
+      { path: "categoris", element: <CategoryManagement /> },
       { path: "novels", element: <NovelManagement /> },
       { path: "payment", element: <PaymentManagement /> },
       { path: "analyticsReport", element: <AnalyticsReport /> },

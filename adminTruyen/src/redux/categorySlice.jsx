@@ -7,22 +7,22 @@ const apiBase = "https://truongthaiduongphanthanhvu.onrender.com/category";
 // API requests cho Category
 export const getAllCategories = createAsyncThunk('categories/getAll', async () => {
   const response = await axios.get(`${apiBase}/getAll`);
-  return response.data;
+  return response.data.result;
 });
 
 export const createCategory = createAsyncThunk('categories/create', async (data) => {
   const response = await axios.post(`${apiBase}/create`, data);
-  return response.data;
+  return response.data.result;
 });
 
 export const updateCategory = createAsyncThunk('categories/update', async (data) => {
   const response = await axios.put(`${apiBase}/update`, data);
-  return response.data;
+  return response.data.result;
 });
 
 export const deleteCategory = createAsyncThunk('categories/delete', async (id) => {
   const response = await axios.delete(`${apiBase}/delete/${id}`);
-  return id;
+  return response.data.result.idCategory;
 });
 
 const categorySlice = createSlice({

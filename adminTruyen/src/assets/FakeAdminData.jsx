@@ -10,7 +10,7 @@ export const FakeAdminData = [
     subMenu: []
   },
   {
-    title: "Category", url: "/category", icon: LayoutList,
+    title: "Categoris", url: "/categoris", icon: LayoutList,
     subMenu: [
       { title: "Product1", url: "/product", icon: Sofa },
       { title: "Product2", url: "/product", icon: Sofa },

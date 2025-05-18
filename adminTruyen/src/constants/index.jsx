@@ -57,6 +57,17 @@ export const navbarLinks = [
         },
     ],
 },
+ {
+    title: "Categories",
+    links: [
+        {
+            label: "Categories",
+            icon: MessageSquare, // Icon for comments/messages
+            path: "/categories",
+        },
+       
+    ],
+},
 
     {
         title: "Payments",

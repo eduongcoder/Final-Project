@@ -47,7 +47,6 @@ const novelOptions = novels?.map((novel) => ({
   const formData = new FormData();
 
   const jsonPayload = new Blob([JSON.stringify({
-    publicIDAuthor: newAuthor.publicIDAuthor,
     nameAuthor: newAuthor.nameAuthor,
     descriptionAuthor: newAuthor.descriptionAuthor,
     nationalityAuthor: newAuthor.nationalityAuthor,
@@ -69,7 +68,6 @@ const novelOptions = novels?.map((novel) => ({
   }
   // Reset
   setNewAuthor({
-    publicIDAuthor: '',
     nameAuthor: '',
     descriptionAuthor: '',
     nationalityAuthor: '',
@@ -80,14 +78,13 @@ const novelOptions = novels?.map((novel) => ({
   });
   setImage(null);
   setIsEditing(false);
-
+  
   setShowForm(false);
 };
 
 //hack handleEditClick
 const handleEditClick = (author) => {
   setNewAuthor({
-    publicIDAuthor: author.publicIDAuthor || '',
     nameAuthor: author.nameAuthor || '',
     descriptionAuthor: author.descriptionAuthor || '',
     nationalityAuthor: author.nationalityAuthor || '',
@@ -135,7 +132,6 @@ const handleEditClick = (author) => {
                 {isEditing ? 'Edit Author' : 'Create New Author'}
               </h2>
         {[
-          ['publicIDAuthor', 'Public ID'],
           ['nameAuthor', 'Name'],
           ['descriptionAuthor', 'Description'],
           ['nationalityAuthor', 'Nationality'],
