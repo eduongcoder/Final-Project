@@ -22,9 +22,6 @@ public class ChapterCreationRequest {
 
 	String titleChapter;
 
-	String contentChapter;
-
-
 	Integer viewChapter;
 
 	String novel;
