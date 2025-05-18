@@ -19,9 +19,6 @@ public class ChapterUpdateRequest {
 	Integer idChapter;
 	String titleChapter;
 
-	String contentChapter;
-
-
 	Integer viewChapter;
 
 	String novel;

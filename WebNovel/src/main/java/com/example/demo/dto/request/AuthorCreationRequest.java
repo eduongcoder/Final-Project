@@ -23,7 +23,6 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class AuthorCreationRequest {
 
-	String publicIDAuthor;
 	String nameAuthor;
 	String descriptionAuthor; 
 	String nationalityAuthor;
