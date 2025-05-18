@@ -23,4 +23,7 @@ public interface IChapterMapper {
 
 	@Mapping(source = "novel.idNovel", target = "novel")
 	ChapterRespone toChapterRespone(Chapter chapter);
+	
+	
+	Chapter toChapterbyChapter(Chapter chapter);
 }

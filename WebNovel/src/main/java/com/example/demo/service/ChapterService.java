@@ -82,26 +82,33 @@ public class ChapterService {
 	}
 
 	public ChapterRespone updateChapter(ChapterUpdateRequest request, MultipartFile textFile) throws IOException {
+		Chapter chapterOgirin=chapterRepository.findById(request.getIdChapter()).get();
 		Chapter chapter = chapterMapper.toChapterUpdate(request);
+		
+		chapterOgirin=chapterMapper.toChapterbyChapter(chapter);
 		if (!chapterRepository.existsById(request.getIdChapter())) {
 			throw new AppException(ErrorCode.CHAPTER_NOT_EXISTED);
 		}
 
 		Novel novel = novelRepository.findById(request.getNovel()).get();
 
-		chapter.setNovel(novel);
+		chapterOgirin.setNovel(novel);
 		if (textFile != null && !textFile.isEmpty()) {
 			String originalFilename = textFile.getOriginalFilename();
 			if (originalFilename != null && originalFilename.toLowerCase().endsWith(".txt")) {
 				String cotent = new String(textFile.getBytes(), StandardCharsets.UTF_8);
-				chapter.setContentChapter(cotent);
+				chapterOgirin.setContentChapter(cotent);
 			} else {
 				throw new AppException(ErrorCode.FILE_MUST_TXT);
 			}
 		}
+		try {
+			chapterOgirin = chapterRepository.save(chapterOgirin);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}	
+		
 
-		chapter = chapterRepository.save(chapter);
-
-		return chapterMapper.toChapterRespone(chapter);
+		return chapterMapper.toChapterRespone(chapterOgirin);
 	}
 }
