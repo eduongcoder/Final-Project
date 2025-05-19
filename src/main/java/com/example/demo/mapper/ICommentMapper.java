@@ -12,8 +12,10 @@ import com.example.demo.entity.Comment;
 public interface ICommentMapper {
 
 	@Mapping(target = "user", ignore = true)
+	@Mapping(target = "chapter", ignore = true)
 	Comment toComment(CommentCreationRequest request);
 
+	@Mapping(target = "chapter", ignore = true)
 	@Mapping(target = "user", ignore = true)
 	Comment toCommentUpdate(CommentUpdateRequest request);
 

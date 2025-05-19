@@ -35,4 +35,8 @@ public class Comment {
 	@ManyToOne
 	@JoinColumn(name = "idUser",nullable = false)
 	User user;
+	
+	@ManyToOne
+	@JoinColumn(name = "idChapter",nullable = false)
+	Chapter chapter;
 }

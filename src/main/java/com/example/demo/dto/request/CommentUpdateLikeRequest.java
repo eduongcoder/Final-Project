@@ -12,17 +12,8 @@ import lombok.experimental.FieldDefaults;
 @AllArgsConstructor
 @NoArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class CommentUpdateRequest {
-
-	String idComment;
-    
-	String contentComment;
-
-	Integer likeComment;
-
-	Integer dislikeComment;
-	
-	Integer chapter;
-	String user;
-
+public class CommentUpdateLikeRequest {
+	Integer idComment;
+	Integer idChapter;
+	String idUser;
 }

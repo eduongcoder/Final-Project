@@ -16,10 +16,8 @@ public class CommentCreationRequest {
     
 	String contentComment;
 
-	Integer likeComment;
-
-	Integer dislikeComment;
-	
 	String user;
+	
+	Integer chapter;
 
 }
