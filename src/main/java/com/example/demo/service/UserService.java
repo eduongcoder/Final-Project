@@ -93,7 +93,7 @@ public class UserService {
 
 		User user = userRepository.findByEmailUser(request.getEmail());
 		if (user == null) {
-			throw new AppException(ErrorCode.USER_NOT_EXISTED);
+			createUserByEmail(UserCreationByEmailRequest.builder().email(request.getEmail()).build());
 		}
 
 		return userMapper.toUserRespone(user);
