@@ -4,259 +4,221 @@ import axios from 'axios';
 
 const apiBase = "https://truongthaiduongphanthanhvu.onrender.com/user";
 
-// Async Thunks for User
-// 1. Login (sau khi Firebase xác thực, backend của bạn có thể cần đồng bộ/tạo user)
-export const loginUserByEmail = createAsyncThunk('user/loginByEmail', async (email, { rejectWithValue }) => {
-  try {
-    const response = await axios.post(`${apiBase}/loginByEmail`, { email });
-    if (response.data && response.data.code === 200 && response.data.result) { // Kiểm tra code và result
-      return response.data.result; // Trả về thông tin user từ backend của bạn
-    } else {
-      return rejectWithValue(response.data.message || 'Login failed on backend');
-    }
-  } catch (error) {
-    return rejectWithValue(error.response?.data?.message || error.message || 'An error occurred during login');
-  }
-});
+// --- API DEFINITIONS BASED ON YOUR REQUIREMENTS ---
 
-// 2. Create User (tương tự login, sau Firebase, backend đồng bộ/tạo)
-export const createUserByEmail = createAsyncThunk('user/createUserByEmail', async (email, { rejectWithValue }) => {
-  try {
-    const response = await axios.post(`${apiBase}/createUserByEmail`, { email });
-     if (response.data && response.data.code === 200 && response.data.result) {
-      return response.data.result;
-    } else {
-      return rejectWithValue(response.data.message || 'User creation failed on backend');
-    }
-  } catch (error) {
-     return rejectWithValue(error.response?.data?.message || error.message || 'An error occurred during user creation');
-  }
-});
+// 1. API ĐĂNG KÝ USER MỚI (SAU KHI XÁC THỰC OTP)
+// Endpoint: /user/create (Hoặc /user/register - BẠN CẦN XÁC NHẬN VÀ THAY THẾ)
+// Payload: { emailUser, passwordUser, dobUser, coin } - application/json
+export const registerUser = createAsyncThunk(
+  'user/registerUser',
+  async (registrationPayload, { rejectWithValue }) => {
+    try {
+      console.log("FRONTEND: Calling API to register user with JSON payload:", JSON.stringify(registrationPayload, null, 2));
+      // THAY THẾ '/create' BẰNG ENDPOINT ĐÚNG CỦA BẠN CHO API ĐĂNG KÝ
+      const response = await axios.post(`${apiBase}/createUser`, registrationPayload, {
+        headers: { 'Content-Type': 'application/json' },
+      });
 
-// 3. Get All Users (chỉ admin nên dùng)
-export const getAllUsers = createAsyncThunk('user/getAllUsers', async (_, { rejectWithValue }) => {
-  try {
-    const response = await axios.get(`${apiBase}/getAllUser`);
-    if (response.data && response.data.code === 200 && response.data.result) {
+      if (response.data && response.data.code === 1000 && response.data.result) {
         return response.data.result;
-    } else {
-        return rejectWithValue(response.data.message || 'Failed to fetch users');
+      } else if (response.data && response.data.code === 9999) {
+        return rejectWithValue(response.data.message || "Unknown error from backend (9999)");
+      } else {
+        return rejectWithValue(response.data?.message || 'User registration failed: Invalid response.');
+      }
+    } catch (error) {
+      const errorMsg = error.response?.data?.message || error.response?.data?.error || error.message || 'Registration API error.';
+      console.error("registerUser API error:", errorMsg, error.response || error);
+      return rejectWithValue(errorMsg);
     }
-  } catch (error) {
-    return rejectWithValue(error.response?.data?.message || error.message || 'An error occurred fetching users');
   }
-});
+);
 
-// 4. Update User
-// body:{ "idUser": "string", "userNameUser": "string", "passwordUser": "string" (optional), "emailUser": "string", "dobUser": "date", "coin": number }
-export const updateUser = createAsyncThunk('user/updateUser', async (userData, { rejectWithValue }) => {
-  try {
-    const response = await axios.put(`${apiBase}/updateUser`, userData);
-    if (response.data && response.data.code === 200 && response.data.result) {
+// 2. API ĐĂNG NHẬP THƯỜNG (EMAIL & PASSWORD)
+// Endpoint: /user/login
+// Payload: { email, password } - application/json
+export const loginUserWithPassword = createAsyncThunk(
+  'user/loginUserWithPassword',
+  async (loginCredentials, { rejectWithValue }) => { // loginCredentials: { email, password }
+    try {
+      console.log("Attempting to login (email/password) with:", loginCredentials);
+      const response = await axios.post(`${apiBase}/login`, loginCredentials, {
+        headers: { 'Content-Type': 'application/json' },
+      });
+
+      if (response.data && response.data.code === 1000 && response.data.result) {
         return response.data.result;
-    } else {
-        return rejectWithValue(response.data.message || 'Failed to update user');
+      } else {
+        return rejectWithValue(response.data?.message || 'Login (email/password) failed: Invalid response.');
+      }
+    } catch (error) {
+      const errorMsg = error.response?.data?.message || error.response?.data?.error || error.message || 'Login (email/password) API error.';
+      console.error("loginUserWithPassword API error:", errorMsg, error.response || error);
+      return rejectWithValue(errorMsg);
     }
-  } catch (error) {
-    return rejectWithValue(error.response?.data?.message || error.message || 'An error occurred updating user');
   }
-});
+);
 
-// 5. Upload Avatar
-// body: FormData (email: string, image: file)
-export const uploadAvatar = createAsyncThunk('user/uploadAvatar', async ({ email, imageFile }, { rejectWithValue }) => {
-  try {
-    const formData = new FormData();
-    formData.append('email', email);
-    formData.append('image', imageFile);
-
-    const response = await axios.post(`${apiBase}/uploadAvatar`, formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
-    if (response.data && response.data.code === 200 && response.data.result) {
-        return response.data.result; // Trả về thông tin user đã cập nhật avatar
-    } else {
-        return rejectWithValue(response.data.message || 'Failed to upload avatar');
+// 3. API ĐĂNG NHẬP CHỈ BẰNG EMAIL (Ví dụ: sau khi xác thực qua nguồn khác)
+// Endpoint: /user/loginByEmail
+// Payload: { email } - application/json
+export const loginUserByEmailOnly = createAsyncThunk(
+  'user/loginByEmailOnly',
+  async (emailPayload, { rejectWithValue }) => { // emailPayload: { email }
+    try {
+      console.log("Attempting to login (by email only) with:", emailPayload);
+      const response = await axios.post(`${apiBase}/loginByEmail`, emailPayload, {
+        headers: { 'Content-Type': 'application/json' },
+      });
+      if (response.data && response.data.code === 1000 && response.data.result) {
+        return response.data.result;
+      } else {
+        return rejectWithValue(response.data?.message || 'Login (by email only) failed: Invalid response.');
+      }
+    } catch (error) {
+      const errorMsg = error.response?.data?.message || error.response?.data?.error || error.message || 'Login (by email only) API error.';
+      console.error("loginUserByEmailOnly API error:", errorMsg, error.response || error);
+      return rejectWithValue(errorMsg);
     }
-  } catch (error) {
-    return rejectWithValue(error.response?.data?.message || error.message || 'An error occurred uploading avatar');
   }
-});
+);
 
-// 6. Send OTP (chỉ trả về message, không cần lưu vào state user)
-export const sendOTP = createAsyncThunk('user/sendOTP', async (email, { rejectWithValue }) => {
-  try {
-    const response = await axios.post(`${apiBase}/sendOTP`, { email }); // API của bạn nhận email trong body
-    if (response.data && response.data.code === 200 && response.data.result) {
-        return { otpSent: true, receivedOtp: response.data.result, message: response.data.message }; // Trả về cả OTP nhận được
-    } else {
-        return rejectWithValue(response.data.message || 'Failed to send OTP');
+
+// 4. API CREATE USER BY EMAIL (Dùng cho Google Sync hoặc khi chỉ có email ban đầu)
+// Endpoint: /user/createUserByEmail
+// Payload: { email } - application/json
+// Backend có thể tự tạo các trường khác hoặc yêu cầu cập nhật sau.
+export const createUserByEmailOnly = createAsyncThunk(
+  'user/createUserByEmailOnly',
+  async (emailPayload, { rejectWithValue }) => { // emailPayload: { email, displayName?, photoURL?, firebaseUid? }
+    try {
+      console.log("Attempting to create/sync user (by email only, e.g., Google) with:", emailPayload);
+      const response = await axios.post(`${apiBase}/createUserByEmail`, emailPayload, {
+        headers: { 'Content-Type': 'application/json' },
+      });
+      if (response.data && response.data.code === 1000 && response.data.result) {
+        return response.data.result;
+      } else {
+        return rejectWithValue(response.data?.message || 'Create user (by email only) failed: Invalid response.');
+      }
+    } catch (error) {
+      const errorMsg = error.response?.data?.message || error.response?.data?.error || error.message || 'Create user (by email only) API error.';
+      console.error("createUserByEmailOnly API error:", errorMsg, error.response || error);
+      return rejectWithValue(errorMsg);
     }
-  } catch (error) {
-    return rejectWithValue(error.response?.data?.message || error.message || 'An error occurred sending OTP');
   }
-});
+);
 
-// 7. Delete User (chỉ admin nên dùng)
-export const deleteUser = createAsyncThunk('user/deleteUser', async (idUser, { rejectWithValue }) => {
-  try {
-    // API yêu cầu idUser là query param
-    const response = await axios.delete(`${apiBase}/deleteUser`, { params: { idUser } });
-    if (response.data && response.data.code === 200) { // Check code thành công
-        return idUser; // Trả về idUser để xóa khỏi state nếu cần
-    } else {
-        return rejectWithValue(response.data.message || 'Failed to delete user');
+// 5. API Send OTP
+// Endpoint: /user/sendOTP
+// Payload: FormData với trường 'email'
+export const sendOTP = createAsyncThunk(
+  'user/sendOTP',
+  async (emailData, { rejectWithValue }) => { // emailData: { email }
+    try {
+      const formData = new FormData();
+      formData.append('email', emailData.email); // Tên trường 'email' cho FormData
+
+      const response = await axios.post(`${apiBase}/sendOTP`, formData);
+      if (response.data && response.data.code === 1000 && response.data.result) {
+        return {
+          otpSent: true,
+          receivedOtp: response.data.result,
+          message: response.data.message || "OTP sent successfully"
+        };
+      } else {
+        return rejectWithValue(response.data?.message || 'Send OTP failed: Invalid response.');
+      }
+    } catch (error) {
+      const errorMsg = error.response?.data?.message || error.response?.data?.error || error.message || 'Send OTP API error.';
+      console.error("sendOTP API error:", errorMsg, error.response || error);
+      return rejectWithValue(errorMsg);
     }
-  } catch (error) {
-    return rejectWithValue(error.response?.data?.message || error.message || 'An error occurred deleting user');
   }
-});
+);
 
-// Slice for User
+// 6. API Upload Avatar
+// Endpoint: /user/uploadAvatar
+// Query param: email
+// Request body: FormData với trường 'image'
+export const uploadAvatar = createAsyncThunk(
+  'user/uploadAvatar',
+  async ({ email, imageFile }, { rejectWithValue }) => {
+    try {
+      const formData = new FormData();
+      formData.append('image', imageFile);
+
+      // email được gửi như một query parameter
+      const response = await axios.post(`${apiBase}/uploadAvatar?email=${encodeURIComponent(email)}`, formData);
+      // Axios tự đặt Content-Type cho FormData
+
+      if (response.data && response.data.code === 1000 && response.data.result) {
+        return response.data.result; // Trả về user object đã cập nhật avatar
+      } else {
+        return rejectWithValue(response.data?.message || 'Upload avatar failed: Invalid response.');
+      }
+    } catch (error) {
+      const errorMsg = error.response?.data?.message || error.response?.data?.error || error.message || 'Upload avatar API error.';
+      console.error("uploadAvatar API error:", errorMsg, error.response || error);
+      return rejectWithValue(errorMsg);
+    }
+  }
+);
+
+// --- SLICE DEFINITION ---
 const userSlice = createSlice({
   name: 'user',
   initialState: {
-    currentUser: null, // Thông tin người dùng hiện tại đang đăng nhập
-    usersList: [], // Danh sách người dùng (ví dụ cho admin)
-    loading: false,
+    currentUser: null,
+    usersList: [], // Ví dụ cho admin
+    loading: false, // Loading chung cho các action chính
+    isOtpSending: false, // Loading riêng cho OTP
     error: null,
-    otpMessage: null, // Để lưu thông báo từ sendOTP nếu cần
+    otpMessage: null,
   },
   reducers: {
-    // Action để logout (xóa currentUser khỏi state)
-    logoutUser: (state) => {
-      state.currentUser = null;
-      state.error = null;
-      // Bạn cũng nên gọi hàm signOut của Firebase ở component
-    },
-    clearUserError: (state) => {
-      state.error = null;
-    },
-    clearOtpMessage: (state) => {
-        state.otpMessage = null;
-    }
+    logoutUser: (state) => { state.currentUser = null; state.error = null; },
+    clearUserError: (state) => { state.error = null; },
+    clearOtpMessage: (state) => { state.otpMessage = null; }
   },
   extraReducers: (builder) => {
     builder
-      // Login User By Email
-      .addCase(loginUserByEmail.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
-      .addCase(loginUserByEmail.fulfilled, (state, action) => {
-        state.loading = false;
-        state.currentUser = action.payload; // Lưu thông tin user đã đăng nhập
-      })
-      .addCase(loginUserByEmail.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload || 'Login failed';
-      })
+      // Register User
+      .addCase(registerUser.pending, (state) => { state.loading = true; state.error = null; })
+      .addCase(registerUser.fulfilled, (state, action) => { state.loading = false; state.currentUser = action.payload; })
+      .addCase(registerUser.rejected, (state, action) => { state.loading = false; state.error = action.payload; })
 
-      // Create User By Email
-      .addCase(createUserByEmail.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
-      .addCase(createUserByEmail.fulfilled, (state, action) => {
-        state.loading = false;
-        state.currentUser = action.payload; // User mới được tạo và đăng nhập
-      })
-      .addCase(createUserByEmail.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload || 'User creation failed';
-      })
+      // Login User With Password
+      .addCase(loginUserWithPassword.pending, (state) => { state.loading = true; state.error = null; })
+      .addCase(loginUserWithPassword.fulfilled, (state, action) => { state.loading = false; state.currentUser = action.payload; })
+      .addCase(loginUserWithPassword.rejected, (state, action) => { state.loading = false; state.error = action.payload; })
 
-      // Get All Users
-      .addCase(getAllUsers.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
-      .addCase(getAllUsers.fulfilled, (state, action) => {
-        state.loading = false;
-        state.usersList = action.payload;
-      })
-      .addCase(getAllUsers.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload || 'Failed to fetch users';
-      })
+      // Login User By Email Only
+      .addCase(loginUserByEmailOnly.pending, (state) => { state.loading = true; state.error = null; })
+      .addCase(loginUserByEmailOnly.fulfilled, (state, action) => { state.loading = false; state.currentUser = action.payload; })
+      .addCase(loginUserByEmailOnly.rejected, (state, action) => { state.loading = false; state.error = action.payload; })
 
-      // Update User (bao gồm cả upload avatar vì nó trả về user object)
-      .addCase(updateUser.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
-      .addCase(updateUser.fulfilled, (state, action) => {
-        state.loading = false;
-        if (state.currentUser && state.currentUser.idUser === action.payload.idUser) {
-          state.currentUser = { ...state.currentUser, ...action.payload };
-        }
-        // Cập nhật trong usersList nếu cần (cho admin view)
-        const index = state.usersList.findIndex(user => user.idUser === action.payload.idUser);
-        if (index !== -1) {
-          state.usersList[index] = { ...state.usersList[index], ...action.payload };
-        }
-      })
-      .addCase(updateUser.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload || 'Failed to update user';
-      })
-
-      // Upload Avatar (cũng cập nhật currentUser)
-      .addCase(uploadAvatar.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
-      .addCase(uploadAvatar.fulfilled, (state, action) => {
-        state.loading = false;
-        if (state.currentUser && state.currentUser.idUser === action.payload.idUser) {
-          state.currentUser = { ...state.currentUser, ...action.payload };
-        }
-         // Cập nhật trong usersList nếu cần
-        const index = state.usersList.findIndex(user => user.idUser === action.payload.idUser);
-        if (index !== -1) {
-          state.usersList[index] = { ...state.usersList[index], ...action.payload };
-        }
-      })
-      .addCase(uploadAvatar.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload || 'Failed to upload avatar';
-      })
+      // Create User By Email Only (Google Sync)
+      .addCase(createUserByEmailOnly.pending, (state) => { state.loading = true; state.error = null; })
+      .addCase(createUserByEmailOnly.fulfilled, (state, action) => { state.loading = false; state.currentUser = action.payload; })
+      .addCase(createUserByEmailOnly.rejected, (state, action) => { state.loading = false; state.error = action.payload; })
 
       // Send OTP
-      .addCase(sendOTP.pending, (state) => {
-        state.loading = true; // Có thể không cần set loading cho OTP nếu nó nhanh
-        state.error = null;
-        state.otpMessage = null;
-      })
-      .addCase(sendOTP.fulfilled, (state, action) => {
-        state.loading = false;
-        state.otpMessage = action.payload; // Lưu thông báo thành công/thất bại từ OTP
-      })
-      .addCase(sendOTP.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload || 'Failed to send OTP'; // Hoặc lưu vào otpMessage tùy logic
-      })
+      .addCase(sendOTP.pending, (state) => { state.isOtpSending = true; state.error = null; state.otpMessage = null; })
+      .addCase(sendOTP.fulfilled, (state, action) => { state.isOtpSending = false; state.otpMessage = action.payload.message; })
+      .addCase(sendOTP.rejected, (state, action) => { state.isOtpSending = false; state.error = action.payload; /* Hoặc otpMessage */ })
 
-      // Delete User
-      .addCase(deleteUser.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
-      .addCase(deleteUser.fulfilled, (state, action) => {
+      // Upload Avatar
+      .addCase(uploadAvatar.pending, (state) => { state.loading = true; state.error = null; })
+      .addCase(uploadAvatar.fulfilled, (state, action) => {
         state.loading = false;
-        // Xóa user khỏi usersList nếu admin view
-        state.usersList = state.usersList.filter(user => user.idUser !== action.payload);
-        // Nếu user bị xóa là currentUser (ví dụ tự xóa tài khoản), thì logout
-        if (state.currentUser && state.currentUser.idUser === action.payload) {
-          state.currentUser = null;
+        // Cập nhật currentUser nếu avatar được upload cho người dùng hiện tại
+        if (state.currentUser && state.currentUser.emailUser === action.payload.emailUser) { // Giả sử result có emailUser
+          state.currentUser = { ...state.currentUser, ...action.payload };
         }
       })
-      .addCase(deleteUser.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload || 'Failed to delete user';
-      });
+      .addCase(uploadAvatar.rejected, (state, action) => { state.loading = false; state.error = action.payload; });
+    // ... Thêm các cases cho getAllUsers, updateUser, deleteUser nếu có ...
   }
 });
 

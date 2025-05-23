@@ -11,6 +11,7 @@ import { getAllAuthors } from './redux/authorSlice'; // Điều chỉnh đườn
 import { getAllCategories } from './redux/categorySlice'; // Điều chỉnh đường dẫn
 
 // Import các component trang
+import ReadingPage from './component/page/readingPage'; // Component mới sẽ tạo
 import Home from './component/page/home';
 import Navbar from './component/Navbar'; // Navbar có thể nằm ngoài Router nếu muốn nó cố định
 import DetailPage from './component/page/DetailPage';
@@ -66,6 +67,8 @@ const AppContent = () => {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/novel/:novelId" element={<DetailPage />} />
+          <Route path="/novel/:novelId/chapter/:chapterId" element={<ReadingPage />} />
+
           {/* <Route path="/novel/:novelId/chapter/:chapterId" element={<ChapterReadPage />} /> */}
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
