@@ -1,5 +1,5 @@
-// src/pages/ReadingPage.jsx
-import React, { useState, useEffect, useRef, useMemo } from 'react'; // Thêm useMemo
+// src/component/page/readingPage.jsx
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { getNovelById } from '../../redux/novelSlice';
@@ -9,7 +9,8 @@ import {
   clearChapterState
 } from '../../redux/chapterSlice';
 
-import { FaCog, FaListUl, FaAngleLeft, FaAngleRight, FaPlay, FaPause, FaVolumeUp, FaFastBackward, FaFastForward } from 'react-icons/fa';
+import { FaCog, FaListUl, FaAngleLeft, FaAngleRight } from 'react-icons/fa';
+import AudioPlayer from '../AudioPlayer';
 
 const ReadingPage = () => {
   const { novelId, chapterId } = useParams();
@@ -34,6 +35,28 @@ const ReadingPage = () => {
   const [theme, setTheme] = useState(() => localStorage.getItem('readingTheme') || 'xam-nhat');
 
   const contentRef = useRef(null);
+
+  const [showAudioPlayer, setShowAudioPlayer] = useState(true);
+  const [audioUrl, setAudioUrl] = useState("https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3");
+
+  // CHIỀU CAO NAVBAR CHÍNH (thanh "TRUYỆN CHỮ") - ĐO BẰNG DEV TOOLS
+  const NAVBAR_MAIN_HEIGHT_PX = 64; // <-- THAY BẰNG CHIỀU CAO THỰC TẾ
+
+  // CHIỀU CAO AUDIO PLAYER (thanh cam) - ĐO BẰNG DEV TOOLS
+  // Giá trị 62px là ước tính khi stats hiển thị, 58px khi stats ẩn.
+  // Bạn nên dùng giá trị cao nhất có thể hoặc đo khi stats hiển thị.
+  const AUDIO_PLAYER_ACTUAL_HEIGHT_PX = 62; // <-- THAY BẰNG CHIỀU CAO THỰC TẾ
+
+  // Padding top cho trang sẽ chỉ là chiều cao của navbar chính
+  const pagePaddingTop = `${NAVBAR_MAIN_HEIGHT_PX}px`;
+
+  // Padding bottom cho trang để nội dung không bị AudioPlayer (nếu hiển thị) che
+  const pagePaddingBottom = showAudioPlayer ? `${AUDIO_PLAYER_ACTUAL_HEIGHT_PX}px` : '0px';
+
+  // Vị trí top của Header đọc truyện (thanh "Nhất niệm vĩnh hằng")
+  // sẽ là ngay dưới navbar chính
+  const readingHeaderTopPosition = `${NAVBAR_MAIN_HEIGHT_PX}px`;
+
 
   useEffect(() => {
     localStorage.setItem('readingFontSize', fontSize.toString());
@@ -64,28 +87,23 @@ const ReadingPage = () => {
     }
   }, [dispatch, novelId, chapterId]);
 
-  // Sử dụng useMemo để tìm index của chương hiện tại trong danh sách đã sắp xếp
-  // và xác định chương trước/sau.
   const { currentChapterIndex, prevChapterDetails, nextChapterDetails } = useMemo(() => {
-    if (!currentChapterContent || !chaptersForReadingPageDropdown || chaptersForReadingPageDropdown.length === 0) {
+    if (!chaptersForReadingPageDropdown || chaptersForReadingPageDropdown.length === 0) {
       return { currentChapterIndex: -1, prevChapterDetails: null, nextChapterDetails: null };
     }
-    // Tìm index của chương hiện tại dựa trên chapterId (an toàn hơn chapterNumber nếu có thể trùng)
     const currentIndex = chaptersForReadingPageDropdown.findIndex(chap => chap.idChapter === chapterId);
-
     const prev = currentIndex > 0 ? chaptersForReadingPageDropdown[currentIndex - 1] : null;
     const next = currentIndex < chaptersForReadingPageDropdown.length - 1 ? chaptersForReadingPageDropdown[currentIndex + 1] : null;
-
     return {
       currentChapterIndex: currentIndex,
       prevChapterDetails: prev,
       nextChapterDetails: next
     };
-  }, [chapterId, chaptersForReadingPageDropdown, currentChapterContent]);
-
+  }, [chapterId, chaptersForReadingPageDropdown]);
 
   const currentChapterNumber = currentChapterContent?.chapterNumber;
 
+  // ... (các hàm handlePrevChapter, handleNextChapter, handleChapterSelect, renderErrorText giữ nguyên) ...
   const handlePrevChapter = () => {
     if (prevChapterDetails?.idChapter) {
       navigate(`/novel/${novelId}/chapter/${prevChapterDetails.idChapter}`);
@@ -105,12 +123,8 @@ const ReadingPage = () => {
     setShowChapterListDropdown(false);
   };
 
-  // Điều kiện disable cho nút "Trước" và "Sau"
   const isFirstChapter = currentChapterIndex === 0;
-  const isLastChapter = currentChapterIndex === chaptersForReadingPageDropdown.length - 1;
-  // Hoặc có thể dựa vào currentNovel.totalChapter nếu bạn tin cậy thông tin này hơn
-  // const isLastChapterBasedOnTotal = currentNovel && currentChapterNumber && currentChapterNumber >= currentNovel.totalChapter;
-
+  const isLastChapter = chaptersForReadingPageDropdown && currentChapterIndex === chaptersForReadingPageDropdown.length - 1;
 
   const renderErrorText = (err, type = "Nội dung") => (
     <div className="text-center py-10 text-red-500">
@@ -120,42 +134,40 @@ const ReadingPage = () => {
 
   if (novelLoading) return <div className="flex justify-center items-center min-h-screen text-xl">Đang tải thông tin truyện...</div>;
   if (novelError) return renderErrorText(novelError, "thông tin truyện");
-
-  if (currentNovel) {
-    if (loadingListForReading && (!chaptersForReadingPageDropdown || chaptersForReadingPageDropdown.length === 0)) {
-      return <div className="flex justify-center items-center min-h-screen text-xl">Đang tải danh sách chương...</div>;
-    }
-    if (errorListForReading && (!chaptersForReadingPageDropdown || chaptersForReadingPageDropdown.length === 0)) {
-      return renderErrorText(errorListForReading, "danh sách chương");
-    }
-    if (loadingContent && !currentChapterContent) {
-      return <div className="flex justify-center items-center min-h-screen text-xl">Đang tải nội dung chương...</div>;
-    }
-    if (errorContent && !currentChapterContent) {
-      return renderErrorText(errorContent, "nội dung chương");
-    }
-  }
-
-  if (!currentNovel || !currentChapterContent || !chaptersForReadingPageDropdown || chaptersForReadingPageDropdown.length === 0) {
-    if (currentNovel && chaptersForReadingPageDropdown && chaptersForReadingPageDropdown.length === 0 && !loadingListForReading && !errorListForReading) {
-      return <div className="flex justify-center items-center min-h-screen text-xl">Truyện này chưa có chương nào.</div>;
-    }
+  if (!currentNovel) return <div className="flex justify-center items-center min-h-screen text-xl">Không tìm thấy thông tin truyện hoặc đang tải...</div>;
+  if (loadingListForReading && (!chaptersForReadingPageDropdown || chaptersForReadingPageDropdown.length === 0)) return <div className="flex justify-center items-center min-h-screen text-xl">Đang tải danh sách chương...</div>;
+  if (errorListForReading && (!chaptersForReadingPageDropdown || chaptersForReadingPageDropdown.length === 0)) return renderErrorText(errorListForReading, "danh sách chương");
+  if (loadingContent && !currentChapterContent) return <div className="flex justify-center items-center min-h-screen text-xl">Đang tải nội dung chương...</div>;
+  if (errorContent && !currentChapterContent) return renderErrorText(errorContent, "nội dung chương");
+  if (!currentChapterContent || !chaptersForReadingPageDropdown || chaptersForReadingPageDropdown.length === 0) {
+    if (chaptersForReadingPageDropdown && chaptersForReadingPageDropdown.length === 0 && !loadingListForReading && !errorListForReading) return <div className="flex justify-center items-center min-h-screen text-xl">Truyện này chưa có chương nào.</div>;
     return <div className="flex justify-center items-center min-h-screen text-xl">Không tìm thấy dữ liệu cần thiết hoặc đang tải...</div>;
   }
 
-
-  const themeClasses = { /* ... giữ nguyên ... */ };
+  const themeClasses = {
+    'xam-nhat': 'bg-gray-100 text-gray-800',
+    'den': 'bg-gray-900 text-gray-200',
+    'trang': 'bg-white text-gray-900',
+  };
   const currentThemeClass = themeClasses[theme] || themeClasses['xam-nhat'];
 
   return (
-    <div className={`reading-page min-h-screen flex flex-col ${currentThemeClass} transition-colors duration-300`} style={{ fontFamily: fontFamily }}>
-      {/* Thanh Audio Player - Giữ nguyên */}
-      {/* ... */}
+    <div
+      className={`reading-page min-h-screen flex flex-col ${currentThemeClass} transition-colors duration-300`}
+      style={{
+        fontFamily: fontFamily,
+        paddingTop: 0, // Padding top cho navbar chính
+        paddingBottom: 0, // Padding bottom cho AudioPlayer
+      }}
+    >
+      {/* Navbar chính của trang sẽ nằm bên ngoài component này, ở App.js hoặc Layout.js */}
+      {/* AudioPlayer sẽ được render ở gần cuối DOM của component này nhưng được định vị fixed */}
 
-      {/* Header đọc truyện */}
-      <header className={`${theme === 'den' ? 'bg-gray-800 text-gray-100' : 'bg-white text-gray-800'} shadow-md py-3 sticky top-[52px] z-20`}>
+      <header
+        className={`${theme === 'den' ? 'bg-gray-800 text-gray-100' : 'bg-white text-gray-800'} shadow-md py-3 sticky top-0 z-20`}
+      >
+        {/* ... Nội dung header đọc truyện giữ nguyên ... */}
         <div className="container mx-auto px-4 flex flex-col sm:flex-row justify-between items-center">
-          {/* ... (Phần tiêu đề truyện và chương giữ nguyên) ... */}
           <div className="text-center sm:text-left mb-2 sm:mb-0">
             <h1 className="text-xl md:text-2xl font-semibold truncate max-w-xs md:max-w-md lg:max-w-2xl">
               <Link to={`/novel/${novelId}`} className={`${theme === 'den' ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-700'} hover:underline`}>
@@ -170,13 +182,12 @@ const ReadingPage = () => {
           <div className="flex items-center space-x-1 sm:space-x-2">
             <button
               onClick={handlePrevChapter}
-              disabled={isFirstChapter || !prevChapterDetails} // Cập nhật điều kiện disable
+              disabled={isFirstChapter || !prevChapterDetails}
               className={`px-2 py-1.5 sm:px-3 ${theme === 'den' ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-200 hover:bg-gray-300'} rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed`}
             >
               <FaAngleLeft className="inline mr-1" /> Trước
             </button>
 
-            {/* ... (Phần Dropdown chọn chương giữ nguyên) ... */}
             <div className="relative">
               <button onClick={() => setShowChapterListDropdown(prev => !prev)} className="px-2 py-1.5 sm:px-3 bg-blue-500 hover:bg-blue-600 text-white rounded text-sm w-28 sm:w-32 text-center flex items-center justify-center">
                 <FaListUl className="inline mr-1" /> C. {currentChapterNumber || '?'}
@@ -198,13 +209,12 @@ const ReadingPage = () => {
 
             <button
               onClick={handleNextChapter}
-              disabled={isLastChapter || !nextChapterDetails} // Cập nhật điều kiện disable
+              disabled={isLastChapter || !nextChapterDetails}
               className={`px-2 py-1.5 sm:px-3 ${theme === 'den' ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-200 hover:bg-gray-300'} rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed`}
             >
               Sau <FaAngleRight className="inline ml-1" />
             </button>
 
-            {/* ... (Phần nút Settings giữ nguyên) ... */}
              <div className="relative">
               <button onClick={() => setShowSettings(prev => !prev)} className={`p-2 ${theme === 'den' ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-200 hover:bg-gray-300'} rounded`} title="Tùy chỉnh"><FaCog /></button>
               {showSettings && (
@@ -221,18 +231,16 @@ const ReadingPage = () => {
         </div>
       </header>
 
-      {/* Main Content - Giữ nguyên */}
-      {/* ... */}
       <main ref={contentRef} className="container mx-auto px-4 sm:px-8 md:px-16 lg:px-24 xl:px-32 py-8 flex-grow overflow-y-auto">
         <div
-          className={`chapter-content prose-lg max-w-none ${theme === 'den' ? 'prose-invert' : ''}`}
+          className={`chapter-content prose-lg max-w-none ${theme === 'den' ? 'prose-invert text-gray-300' : ''} ${theme === 'trang' ? 'text-gray-900' : ''} ${theme === 'xam-nhat' ? 'text-gray-800' : ''}`}
           style={{ fontSize: `${fontSize}px`, lineHeight: lineHeight }}
           dangerouslySetInnerHTML={{ __html: currentChapterContent.contentChapter?.replace(/\n/g, '<br />') || 'Nội dung chương đang được cập nhật...' }}
         />
       </main>
 
-      {/* Footer - Cập nhật điều kiện disable cho nút */}
-      <footer className={`${theme === 'den' ? 'bg-gray-800' : 'bg-white'} shadow-md py-4 sticky bottom-0 z-20`}>
+      <footer className={`${theme === 'den' ? 'bg-gray-800' : 'bg-white'}  shadow-md py-4 sticky top-0 z-20`}>
+        {/* ... Nội dung footer giữ nguyên ... */}
         <div className="container mx-auto px-4 flex justify-center items-center space-x-1 sm:space-x-2">
           <button
             onClick={handlePrevChapter}
@@ -241,7 +249,6 @@ const ReadingPage = () => {
           >
             <FaAngleLeft className="inline mr-1" /> Trước
           </button>
-          {/* ... (Phần Dropdown chọn chương ở footer giữ nguyên) ... */}
           <div className="relative">
             <button onClick={() => setShowChapterListDropdown(prev => !prev)} className="px-2 py-1.5 sm:px-3 bg-blue-500 hover:bg-blue-600 text-white rounded text-sm w-28 sm:w-32 text-center flex items-center justify-center">
               <FaListUl className="inline mr-1" /> C. {currentChapterNumber || '?'}
@@ -257,6 +264,19 @@ const ReadingPage = () => {
           </button>
         </div>
       </footer>
+
+      {/* AudioPlayer được render ở đây nhưng sẽ fixed ở bottom-0 */}
+      {showAudioPlayer && (
+        <AudioPlayer
+          audioSrc={audioUrl}
+          onPrevChapter={handlePrevChapter}
+          onNextChapter={handleNextChapter}
+          currentChapterIndexForAudio={currentChapterIndex}
+          totalChapters={chaptersForReadingPageDropdown ? chaptersForReadingPageDropdown.length : 0}
+          coverImage={currentNovel?.coverImage}
+          // Class fixed và bottom-0 đã được đặt trong AudioPlayer.jsx
+        />
+      )}
     </div>
   );
 };
