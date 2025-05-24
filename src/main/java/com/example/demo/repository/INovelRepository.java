@@ -7,5 +7,6 @@ import com.example.demo.entity.Novel;
 
 @Repository
 public interface INovelRepository extends JpaRepository<Novel, String>{
+	
 
 }

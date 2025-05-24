@@ -20,6 +20,7 @@ import com.example.demo.dto.request.CommentUpdateLikeRequest;
 import com.example.demo.dto.request.CommentUpdateRequest;
 import com.example.demo.dto.respone.ApiRespone;
 import com.example.demo.dto.respone.ChapterRespone;
+import com.example.demo.dto.respone.CommentNovelRespone;
 import com.example.demo.dto.respone.CommentRespone;
 import com.example.demo.service.CommentService;
 
@@ -44,6 +45,11 @@ public class CommentController {
 	@GetMapping(value = "/getAllByUser/{idUser}")
 	ApiRespone<List<CommentRespone>> getAllCommentByUser(@PathVariable(name = "idUser") String idUser){
 		return ApiRespone.<List<CommentRespone>>builder().result(commentService.getListCommentByUser(idUser)).build();
+	}
+	
+	@GetMapping(value = "/getAllByNovel/{idNovel}")
+	ApiRespone<List<CommentNovelRespone>> getAllCommentByNovel(@PathVariable(name = "idNovel") String idNovel){
+		return ApiRespone.<List<CommentNovelRespone>>builder().result(commentService.getListCommentByNovel(idNovel)).build();
 	}
 	
 	@PostMapping( "/create")

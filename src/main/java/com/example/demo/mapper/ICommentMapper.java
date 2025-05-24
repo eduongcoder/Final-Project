@@ -5,6 +5,7 @@ import org.mapstruct.Mapping;
 
 import com.example.demo.dto.request.CommentCreationRequest;
 import com.example.demo.dto.request.CommentUpdateRequest;
+import com.example.demo.dto.respone.CommentNovelRespone;
 import com.example.demo.dto.respone.CommentRespone;
 import com.example.demo.entity.Comment;
 
@@ -21,4 +22,8 @@ public interface ICommentMapper {
 
 	@Mapping(source = "user.userNameUser", target = "userName")
 	CommentRespone toCommentRespone(Comment comment);
+	
+	@Mapping(target = "titleChapter", source = "chapter.titleChapter")
+	@Mapping(source = "user.userNameUser", target = "userName")
+	CommentNovelRespone toCommentNovelRespone(Comment comment);
 }

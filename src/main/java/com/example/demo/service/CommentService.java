@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 import com.example.demo.dto.request.CommentCreationRequest;
 import com.example.demo.dto.request.CommentUpdateLikeRequest;
 import com.example.demo.dto.request.CommentUpdateRequest;
+import com.example.demo.dto.respone.CommentNovelRespone;
 import com.example.demo.dto.respone.CommentRespone;
 import com.example.demo.entity.Chapter;
 import com.example.demo.entity.Comment;
@@ -43,6 +44,12 @@ public class CommentService {
 		
 		return comments.stream().map(t -> commentMapper.toCommentRespone(t)).toList();
 	}
+	public List<CommentNovelRespone> getListCommentByNovel(String idNovel){
+		List<Comment> comments=commentRepository.findAllByNovelId(idNovel);
+		
+		return comments.stream().map(t -> commentMapper.toCommentNovelRespone(t)).toList();
+	}
+	
 	
 	public CommentRespone createComment(CommentCreationRequest request) {
 		User user=userRepository.findByIdUser(request.getUser());
