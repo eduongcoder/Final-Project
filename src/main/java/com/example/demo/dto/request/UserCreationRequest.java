@@ -1,10 +1,5 @@
 package com.example.demo.dto.request;
 
-import java.time.LocalDateTime;
-import java.util.Set;
-
-import com.example.demo.enums.Status;
-
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -21,8 +16,4 @@ public class UserCreationRequest {
 	String passwordUser;
 
 	String emailUser;
-
-	LocalDateTime dobUser;
-
-	Integer coin;
 }
