@@ -1,4 +1,4 @@
-// src/component/page/readingPage.jsx
+// src/pages/ReadingPage.jsx
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
@@ -8,9 +8,12 @@ import {
   getChapterContentById,
   clearChapterState
 } from '../../redux/chapterSlice';
+// KHÔNG import gì từ userSlice ở đây nếu bạn không dùng trực tiếp action nào từ nó trong file này.
+// Việc lấy currentUser sẽ chỉ qua useSelector.
 
 import { FaCog, FaListUl, FaAngleLeft, FaAngleRight } from 'react-icons/fa';
-import AudioPlayer from '../AudioPlayer';
+import AudioPlayer from '../AudioPlayer'; // Đường dẫn component
+import ChapterComments from '../ChapterComments'; // Đường dẫn component
 
 const ReadingPage = () => {
   const { novelId, chapterId } = useParams();
@@ -27,6 +30,11 @@ const ReadingPage = () => {
     errorListForReading,
   } = useSelector((state) => state.chapters);
 
+  // Lấy thông tin người dùng hiện tại từ Redux store (userSlice)
+  // Thêm kiểm tra an toàn nếu state.user có thể undefined
+  const currentUser = useSelector((state) => state.user?.currentUser || null);
+
+
   const [showChapterListDropdown, setShowChapterListDropdown] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [fontSize, setFontSize] = useState(() => parseInt(localStorage.getItem('readingFontSize') || '20', 10));
@@ -37,25 +45,7 @@ const ReadingPage = () => {
   const contentRef = useRef(null);
 
   const [showAudioPlayer, setShowAudioPlayer] = useState(true);
-  const [audioUrl, setAudioUrl] = useState("https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3");
-
-  // CHIỀU CAO NAVBAR CHÍNH (thanh "TRUYỆN CHỮ") - ĐO BẰNG DEV TOOLS
-  const NAVBAR_MAIN_HEIGHT_PX = 64; // <-- THAY BẰNG CHIỀU CAO THỰC TẾ
-
-  // CHIỀU CAO AUDIO PLAYER (thanh cam) - ĐO BẰNG DEV TOOLS
-  // Giá trị 62px là ước tính khi stats hiển thị, 58px khi stats ẩn.
-  // Bạn nên dùng giá trị cao nhất có thể hoặc đo khi stats hiển thị.
-  const AUDIO_PLAYER_ACTUAL_HEIGHT_PX = 62; // <-- THAY BẰNG CHIỀU CAO THỰC TẾ
-
-  // Padding top cho trang sẽ chỉ là chiều cao của navbar chính
-  const pagePaddingTop = `${NAVBAR_MAIN_HEIGHT_PX}px`;
-
-  // Padding bottom cho trang để nội dung không bị AudioPlayer (nếu hiển thị) che
-  const pagePaddingBottom = showAudioPlayer ? `${AUDIO_PLAYER_ACTUAL_HEIGHT_PX}px` : '0px';
-
-  // Vị trí top của Header đọc truyện (thanh "Nhất niệm vĩnh hằng")
-  // sẽ là ngay dưới navbar chính
-  const readingHeaderTopPosition = `${NAVBAR_MAIN_HEIGHT_PX}px`;
+  const audioUrl = currentChapterContent?.audioUrl || "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3";
 
 
   useEffect(() => {
@@ -103,7 +93,6 @@ const ReadingPage = () => {
 
   const currentChapterNumber = currentChapterContent?.chapterNumber;
 
-  // ... (các hàm handlePrevChapter, handleNextChapter, handleChapterSelect, renderErrorText giữ nguyên) ...
   const handlePrevChapter = () => {
     if (prevChapterDetails?.idChapter) {
       navigate(`/novel/${novelId}/chapter/${prevChapterDetails.idChapter}`);
@@ -124,7 +113,8 @@ const ReadingPage = () => {
   };
 
   const isFirstChapter = currentChapterIndex === 0;
-  const isLastChapter = chaptersForReadingPageDropdown && currentChapterIndex === chaptersForReadingPageDropdown.length - 1;
+  const isLastChapter = chaptersForReadingPageDropdown && currentChapterIndex === chaptersForReadingPageDropdown.length - 1 && chaptersForReadingPageDropdown.length > 0;
+
 
   const renderErrorText = (err, type = "Nội dung") => (
     <div className="text-center py-10 text-red-500">
@@ -132,17 +122,41 @@ const ReadingPage = () => {
     </div>
   );
 
-  if (novelLoading) return <div className="flex justify-center items-center min-h-screen text-xl">Đang tải thông tin truyện...</div>;
-  if (novelError) return renderErrorText(novelError, "thông tin truyện");
-  if (!currentNovel) return <div className="flex justify-center items-center min-h-screen text-xl">Không tìm thấy thông tin truyện hoặc đang tải...</div>;
-  if (loadingListForReading && (!chaptersForReadingPageDropdown || chaptersForReadingPageDropdown.length === 0)) return <div className="flex justify-center items-center min-h-screen text-xl">Đang tải danh sách chương...</div>;
-  if (errorListForReading && (!chaptersForReadingPageDropdown || chaptersForReadingPageDropdown.length === 0)) return renderErrorText(errorListForReading, "danh sách chương");
-  if (loadingContent && !currentChapterContent) return <div className="flex justify-center items-center min-h-screen text-xl">Đang tải nội dung chương...</div>;
-  if (errorContent && !currentChapterContent) return renderErrorText(errorContent, "nội dung chương");
-  if (!currentChapterContent || !chaptersForReadingPageDropdown || chaptersForReadingPageDropdown.length === 0) {
-    if (chaptersForReadingPageDropdown && chaptersForReadingPageDropdown.length === 0 && !loadingListForReading && !errorListForReading) return <div className="flex justify-center items-center min-h-screen text-xl">Truyện này chưa có chương nào.</div>;
-    return <div className="flex justify-center items-center min-h-screen text-xl">Không tìm thấy dữ liệu cần thiết hoặc đang tải...</div>;
+  // Cập nhật logic loading và error
+  if (novelLoading && !currentNovel) return <div className="flex justify-center items-center min-h-screen text-xl">Đang tải thông tin truyện...</div>;
+  if (novelError && !currentNovel) return renderErrorText(novelError, "thông tin truyện");
+
+  if (currentNovel) {
+    if (loadingListForReading && (!chaptersForReadingPageDropdown || chaptersForReadingPageDropdown.length === 0)) {
+      return <div className="flex justify-center items-center min-h-screen text-xl">Đang tải danh sách chương...</div>;
+    }
+    if (errorListForReading && (!chaptersForReadingPageDropdown || chaptersForReadingPageDropdown.length === 0)) {
+      return renderErrorText(errorListForReading, "danh sách chương");
+    }
+    if (loadingContent && (!currentChapterContent || currentChapterContent.idChapter !== chapterId)) {
+      return <div className="flex justify-center items-center min-h-screen text-xl">Đang tải nội dung chương...</div>;
+    }
+    if (errorContent && (!currentChapterContent || currentChapterContent.idChapter !== chapterId)) {
+      return renderErrorText(errorContent, "nội dung chương");
+    }
   }
+
+  if (!currentNovel ||
+      (!chaptersForReadingPageDropdown && !loadingListForReading && !errorListForReading) || // Nếu chưa có danh sách chương và không loading/error
+      (!currentChapterContent && !loadingContent && !errorContent) // Nếu chưa có nội dung chương và không loading/error
+     ) {
+    // Xử lý trường hợp danh sách chương rỗng sau khi đã tải xong
+    if (currentNovel && chaptersForReadingPageDropdown && chaptersForReadingPageDropdown.length === 0 && !loadingListForReading && !errorListForReading) {
+      return <div className="flex justify-center items-center min-h-screen text-xl">Truyện này chưa có chương nào.</div>;
+    }
+    // Các trường hợp khác không có dữ liệu cần thiết (có thể do vẫn đang trong quá trình fetch ban đầu)
+    if (!novelLoading && !loadingListForReading && !loadingContent) {
+        return <div className="flex justify-center items-center min-h-screen text-xl">Không tìm thấy dữ liệu cần thiết.</div>;
+    }
+    // Nếu vẫn còn bất kỳ trạng thái loading nào, hiển thị thông báo chung
+    return <div className="flex justify-center items-center min-h-screen text-xl">Đang tải dữ liệu...</div>;
+  }
+
 
   const themeClasses = {
     'xam-nhat': 'bg-gray-100 text-gray-800',
@@ -154,19 +168,11 @@ const ReadingPage = () => {
   return (
     <div
       className={`reading-page min-h-screen flex flex-col ${currentThemeClass} transition-colors duration-300`}
-      style={{
-        fontFamily: fontFamily,
-        paddingTop: 0, // Padding top cho navbar chính
-        paddingBottom: 0, // Padding bottom cho AudioPlayer
-      }}
+      style={{ fontFamily: fontFamily }}
     >
-      {/* Navbar chính của trang sẽ nằm bên ngoài component này, ở App.js hoặc Layout.js */}
-      {/* AudioPlayer sẽ được render ở gần cuối DOM của component này nhưng được định vị fixed */}
-
       <header
         className={`${theme === 'den' ? 'bg-gray-800 text-gray-100' : 'bg-white text-gray-800'} shadow-md py-3 sticky top-0 z-20`}
       >
-        {/* ... Nội dung header đọc truyện giữ nguyên ... */}
         <div className="container mx-auto px-4 flex flex-col sm:flex-row justify-between items-center">
           <div className="text-center sm:text-left mb-2 sm:mb-0">
             <h1 className="text-xl md:text-2xl font-semibold truncate max-w-xs md:max-w-md lg:max-w-2xl">
@@ -175,7 +181,7 @@ const ReadingPage = () => {
               </Link>
             </h1>
             <p className={`text-sm ${theme === 'den' ? 'text-gray-400' : 'text-gray-600'}`}>
-              Chương {currentChapterNumber || 'N/A'}: {currentChapterContent.titleChapter || 'Tiêu đề chương'}
+              Chương {currentChapterNumber || 'N/A'}: {currentChapterContent?.titleChapter || 'Tiêu đề chương'}
             </p>
           </div>
 
@@ -235,12 +241,23 @@ const ReadingPage = () => {
         <div
           className={`chapter-content prose-lg max-w-none ${theme === 'den' ? 'prose-invert text-gray-300' : ''} ${theme === 'trang' ? 'text-gray-900' : ''} ${theme === 'xam-nhat' ? 'text-gray-800' : ''}`}
           style={{ fontSize: `${fontSize}px`, lineHeight: lineHeight }}
-          dangerouslySetInnerHTML={{ __html: currentChapterContent.contentChapter?.replace(/\n/g, '<br />') || 'Nội dung chương đang được cập nhật...' }}
+          dangerouslySetInnerHTML={{ __html: currentChapterContent?.contentChapter?.replace(/\n/g, '<br />') || 'Nội dung chương đang được cập nhật...' }}
         />
       </main>
 
-      <footer className={`${theme === 'den' ? 'bg-gray-800' : 'bg-white'}  shadow-md py-4 sticky top-0 z-20`}>
-        {/* ... Nội dung footer giữ nguyên ... */}
+      {/* Component Bình luận */}
+      {chapterId && currentNovel && currentChapterContent && ( // Đảm bảo có currentChapterContent trước khi render comments
+        <div className="container mx-auto px-4 sm:px-8 md:px-16 lg:px-24 xl:px-32 py-8">
+          <ChapterComments
+            chapterId={chapterId}
+            novelId={novelId}
+            currentUserId={currentUser?.idUser}
+          />
+        </div>
+      )}
+
+
+      <footer className={`${theme === 'den' ? 'bg-gray-800' : 'bg-white'} shadow-md py-4 sticky bottom-0 z-20`}>
         <div className="container mx-auto px-4 flex justify-center items-center space-x-1 sm:space-x-2">
           <button
             onClick={handlePrevChapter}
@@ -265,16 +282,16 @@ const ReadingPage = () => {
         </div>
       </footer>
 
-      {/* AudioPlayer được render ở đây nhưng sẽ fixed ở bottom-0 */}
-      {showAudioPlayer && (
+      {showAudioPlayer && currentChapterContent?.audioUrl && (
         <AudioPlayer
-          audioSrc={audioUrl}
+          audioSrc={currentChapterContent.audioUrl}
           onPrevChapter={handlePrevChapter}
           onNextChapter={handleNextChapter}
-          currentChapterIndexForAudio={currentChapterIndex}
-          totalChapters={chaptersForReadingPageDropdown ? chaptersForReadingPageDropdown.length : 0}
-          coverImage={currentNovel?.coverImage}
-          // Class fixed và bottom-0 đã được đặt trong AudioPlayer.jsx
+          isFirstChapter={isFirstChapter}
+          isLastChapter={isLastChapter}
+          novelTitle={currentNovel?.nameNovel}
+          chapterTitle={currentChapterContent?.titleChapter}
+          coverImage={currentNovel?.imageNovel}
         />
       )}
     </div>

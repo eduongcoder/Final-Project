@@ -16,6 +16,7 @@ import Home from './component/page/home';
 import Navbar from './component/Navbar'; // Navbar có thể nằm ngoài Router nếu muốn nó cố định
 import DetailPage from './component/page/DetailPage';
 import NotFoundPage from './component/NotFoundPage';
+import DepositPage from './component/page/DepositPage';
 
 // Component trung gian để xử lý việc fetch dữ liệu
 const AppContent = () => {
@@ -68,7 +69,7 @@ const AppContent = () => {
           <Route path="/" element={<Home />} />
           <Route path="/novel/:novelId" element={<DetailPage />} />
           <Route path="/novel/:novelId/chapter/:chapterId" element={<ReadingPage />} />
-
+          <Route path="/deposit" element={<DepositPage />} />
           {/* <Route path="/novel/:novelId/chapter/:chapterId" element={<ChapterReadPage />} /> */}
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
