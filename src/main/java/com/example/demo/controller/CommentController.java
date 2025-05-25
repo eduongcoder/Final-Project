@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
@@ -24,15 +25,16 @@ import com.example.demo.dto.respone.CommentNovelRespone;
 import com.example.demo.dto.respone.CommentRespone;
 import com.example.demo.service.CommentService;
 
-import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import lombok.extern.slf4j.Slf4j;
 
 @RequestMapping("/comment")
 @RestController
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @RequiredArgsConstructor
+@Slf4j
 public class CommentController {
 
 	CommentService commentService;
@@ -54,6 +56,7 @@ public class CommentController {
 	
 	@PostMapping( "/create")
 	public ApiRespone<CommentRespone> createChapter(@RequestBody CommentCreationRequest request)  {
+		log.info(request.getChapter()+"");
 		return ApiRespone.<CommentRespone>builder().result(commentService.createComment(request)).build();
 	}
 	

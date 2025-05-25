@@ -17,9 +17,8 @@ import com.example.demo.entity.Chapter;
 @Repository
 public interface IHistoryReadRepository extends JpaRepository<HistoryRead, HistoryId>{
 
-	@Query(value = "SELECT c.* " +
-            "FROM novel.history_read c " +
-            "WHERE c.id_User = :idUser", nativeQuery = true)
+	@Query(value = "SELECT * FROM history_read WHERE id_User = :idUser", nativeQuery = true)
 	List<HistoryRead> findByIDUser(String idUser);
+
 	List<HistoryRead> findByNovel(Novel novel);
 }
