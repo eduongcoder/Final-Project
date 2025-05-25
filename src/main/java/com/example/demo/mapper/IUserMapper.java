@@ -18,7 +18,7 @@ public interface IUserMapper {
 	@Mapping(target = "emailUser",source = "email") 
 	User toUserByEmail(UserCreationByEmailRequest request);
 	UserRespone toUserRespone(User user);
-	
+	 
 	void updateUser(UserUpdateRequest request,@MappingTarget User user);
 
 }

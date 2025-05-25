@@ -15,6 +15,7 @@ import com.example.demo.dto.request.UserCreationRequest;
 import com.example.demo.dto.request.UserLoginByEmailRequest;
 import com.example.demo.dto.request.UserLoginRequest;
 import com.example.demo.dto.request.UserUpdateRequest;
+import com.example.demo.dto.respone.HistoryReadRespone;
 import com.example.demo.dto.respone.UploadFileRespone;
 import com.example.demo.dto.respone.UserRespone;
 import com.example.demo.entity.HistoryId;
@@ -45,7 +46,7 @@ public class UserService {
 	INovelRepository novelRepository;
 	IHistoryReadRepository historyReadRepository;
 	IHistoryReadMapper historyReadMapper;
-	
+	HistoryReadService historyReadService;
 	public List<UserRespone> getAllUser() {
 		return userRepository.findAll().stream().map(t -> userMapper.toUserRespone(t)).toList();
 	}
@@ -98,7 +99,11 @@ public class UserService {
 			throw new AppException(ErrorCode.PASSWORD_NOT_MATCHED);
 		}
 
-		return userMapper.toUserRespone(user);
+		UserRespone userRespone= userMapper.toUserRespone(user);
+		List<HistoryReadRespone> historyReadRespones=historyReadService.getHistoryRead(userRespone.getIdUser());
+		userRespone.setHistoryRead(historyReadRespones);
+		
+		return userRespone;
 	}
 
 	public UserRespone loginByEmail(UserLoginByEmailRequest request) {
@@ -108,7 +113,11 @@ public class UserService {
 			createUserByEmail(UserCreationByEmailRequest.builder().email(request.getEmail()).build());
 		}
 
-		return userMapper.toUserRespone(user);
+		UserRespone userRespone= userMapper.toUserRespone(user);
+		List<HistoryReadRespone> historyReadRespones=historyReadService.getHistoryRead(userRespone.getIdUser());
+		userRespone.setHistoryRead(historyReadRespones);
+		
+		return userRespone;
 	}
 
 	public UserRespone updateUser(UserUpdateRequest request) throws IOException {
