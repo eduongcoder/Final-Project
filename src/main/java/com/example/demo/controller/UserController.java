@@ -19,7 +19,10 @@ import com.example.demo.dto.request.UserLoginByEmailRequest;
 import com.example.demo.dto.request.UserLoginRequest;
 import com.example.demo.dto.request.UserUpdateRequest;
 import com.example.demo.dto.respone.ApiRespone;
+import com.example.demo.dto.respone.HistoryReadRespone;
 import com.example.demo.dto.respone.UserRespone;
+import com.example.demo.entity.HistoryId;
+import com.example.demo.service.HistoryReadService;
 import com.example.demo.service.MailService;
 import com.example.demo.service.UserService;
 
@@ -37,7 +40,7 @@ public class UserController {
 
 	UserService userService;
 	MailService mailService;
-//	HistoryReadService historyReadService;
+	HistoryReadService historyReadService;
 	
 	@GetMapping("/getAllUser")
 	public ApiRespone<List<UserRespone>> getAllUser(){
@@ -90,19 +93,19 @@ public class UserController {
 	public ApiRespone<String> deleteUser(@RequestParam String idUser){
 		return ApiRespone.<String>builder().result(userService.deleteUser(idUser)).build();
 	}
-//	@PostMapping("/createHistory")
-//	public ApiRespone<UserRespone> createHistory(@RequestParam String idNovel,@RequestParam String email,@RequestParam String titleChapter){
-////		log.info(idNovel + " "+ email+ " "+ titleChapter);
-//		return ApiRespone.<UserRespone>builder().result(userService.createHistoryRead(idNovel, email,titleChapter)).build();
-//	}
-//	
-//	@PostMapping("/deleteHistory")
-//	public ApiRespone<String> deleteHistory(@RequestBody HistoryId historyId){
-//		return ApiRespone.<String>builder().result(historyReadService.deleteHistoryRead(historyId)).build();
-//	}
-//	@GetMapping("/getHistory")
-//	public ApiRespone<List<HistoryReadRespone>> getHistory(@RequestParam String idUser) {
-//		return  ApiRespone.<List<HistoryReadRespone>>builder().result(historyReadService.getHistoryRead(idUser)).build();
-//	}
+	@PostMapping("/createHistory")
+	public ApiRespone<UserRespone> createHistory(@RequestParam String idNovel,@RequestParam String email,@RequestParam String titleChapter){
+//		log.info(idNovel + " "+ email+ " "+ titleChapter);
+		return ApiRespone.<UserRespone>builder().result(userService.createHistoryRead(idNovel, email,titleChapter)).build();
+	}
+	
+	@DeleteMapping("/deleteHistory")
+	public ApiRespone<String> deleteHistory(@RequestBody HistoryId historyId){
+		return ApiRespone.<String>builder().result(historyReadService.deleteHistoryRead(historyId)).build();
+	}
+	@GetMapping("/getHistory")
+	public ApiRespone<List<HistoryReadRespone>> getHistory(@RequestParam String idUser) {
+		return  ApiRespone.<List<HistoryReadRespone>>builder().result(historyReadService.getHistoryRead(idUser)).build();
+	}
 	
 }

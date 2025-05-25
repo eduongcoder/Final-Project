@@ -1,7 +1,9 @@
 package com.example.demo.service;
 
 import java.io.IOException;
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -15,10 +17,16 @@ import com.example.demo.dto.request.UserLoginRequest;
 import com.example.demo.dto.request.UserUpdateRequest;
 import com.example.demo.dto.respone.UploadFileRespone;
 import com.example.demo.dto.respone.UserRespone;
+import com.example.demo.entity.HistoryId;
+import com.example.demo.entity.HistoryRead;
+import com.example.demo.entity.Novel;
 import com.example.demo.entity.User;
 import com.example.demo.exception.AppException;
 import com.example.demo.exception.ErrorCode;
+import com.example.demo.mapper.IHistoryReadMapper;
 import com.example.demo.mapper.IUserMapper;
+import com.example.demo.repository.IHistoryReadRepository;
+import com.example.demo.repository.INovelRepository;
 import com.example.demo.repository.IUserRepository;
 
 import lombok.AccessLevel;
@@ -34,6 +42,9 @@ public class UserService {
 	IUserMapper userMapper;
 	PasswordEncoder passwordEncoder;
 	UploadFileService uploadFileService;
+	INovelRepository novelRepository;
+	IHistoryReadRepository historyReadRepository;
+	IHistoryReadMapper historyReadMapper;
 	
 	public List<UserRespone> getAllUser() {
 		return userRepository.findAll().stream().map(t -> userMapper.toUserRespone(t)).toList();
@@ -136,6 +147,33 @@ public class UserService {
 		}
 		userRepository.deleteById(idUser);
 		return idUser;
+	}
+	
+	public UserRespone createHistoryRead(String idNovel, String email, String titleChapter) {
+		User user = userRepository.findByEmailUser(email);
+		Novel novel = novelRepository.findById(idNovel).get();
+
+		HistoryId historyId = HistoryId.builder()
+										.idNovel(idNovel)
+										.idUser(user.getIdUser())
+										.build();
+
+
+		HistoryRead historyRead = HistoryRead.builder().id(historyId).novel(novel).readingTime(LocalDateTime.now())
+				.titleChapter(titleChapter).user(user).build();
+
+		Optional<HistoryRead> historyReadPast = historyReadRepository.findById(historyId);
+
+		if (!historyReadPast.isEmpty()) {
+
+			historyReadMapper.updateHistoryRead(historyRead, historyReadPast.get());
+			historyReadRepository.save(historyReadPast.get());
+			return userMapper.toUserRespone(user);
+
+		}
+		historyReadRepository.save(historyRead);
+
+		return userMapper.toUserRespone(user);
 	}
 	
 }
