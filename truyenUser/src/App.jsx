@@ -9,7 +9,7 @@ import store from "./redux/store"; // Đường dẫn tới store của bạn
 import { getAllNovels } from './redux/novelSlice'; // Điều chỉnh đường dẫn nếu cần
 import { getAllAuthors } from './redux/authorSlice'; // Điều chỉnh đường dẫn
 import { getAllCategories } from './redux/categorySlice'; // Điều chỉnh đường dẫn
-
+import {loadUserFromStorage} from './redux/userSlice'; // Điều chỉnh đường dẫn
 // Import các component trang
 import ReadingPage from './component/page/readingPage'; // Component mới sẽ tạo
 import Home from './component/page/home';
@@ -17,6 +17,8 @@ import Navbar from './component/Navbar'; // Navbar có thể nằm ngoài Router
 import DetailPage from './component/page/DetailPage';
 import NotFoundPage from './component/NotFoundPage';
 import DepositPage from './component/page/DepositPage';
+import ReadingHistoryPage from './component/page/ReadingHistoryPage';
+import TransactionHistoryPage from './component/page/TransactionHistoryPage';
 
 // Component trung gian để xử lý việc fetch dữ liệu
 const AppContent = () => {
@@ -33,7 +35,7 @@ const AppContent = () => {
       console.log("App.jsx: Fetching all novels for the first time.");
       dispatch(getAllNovels());
     }
-
+    dispatch(loadUserFromStorage());
     if (!authorsLoading && (!authors || authors.length === 0)) {
       console.log("App.jsx: Fetching all authors for the first time.");
       dispatch(getAllAuthors());
@@ -70,7 +72,8 @@ const AppContent = () => {
           <Route path="/novel/:novelId" element={<DetailPage />} />
           <Route path="/novel/:novelId/chapter/:chapterId" element={<ReadingPage />} />
           <Route path="/deposit" element={<DepositPage />} />
-          {/* <Route path="/novel/:novelId/chapter/:chapterId" element={<ChapterReadPage />} /> */}
+          <Route path="/user/reading-history" element={<ReadingHistoryPage />} />
+          <Route path="/user/transaction-history" element={<TransactionHistoryPage />} />
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
         {/* Footer có thể đặt ở đây */}

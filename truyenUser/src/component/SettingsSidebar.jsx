@@ -1,23 +1,26 @@
 // SettingsSidebar.js
 import React from 'react';
+import { useNavigate } from 'react-router-dom'; // THÊM: Import useNavigate
 import {
   X,
-  Gift, // Cho nút Nạp và icon bướm/quà
-  PenLine, // Đăng truyện
-  Archive, // Kho truyện
-  ListOrdered, // Xếp hạng
-  LineChart, // Thời gian thực
-  Star, // Đánh giá mới
-  Sun, // Icon mặt trời
-  KeyRound, // Icon chìa khóa
-  Coins, // Icon tiền xu
-  Wallet, // Icon ví
-  UserCircle2 // Icon User
+  Gift,
+  PenLine,
+  Archive,
+  ListOrdered,
+  LineChart,
+  Star,
+  Sun,
+  KeyRound,
+  Coins,
+  Wallet,
+  UserCircle2,
+  BookOpen, // THÊM: Icon cho Lịch sử đọc truyện
+  Repeat,   // THÊM: Icon cho Lịch sử giao dịch
 } from 'lucide-react';
 
 // Dữ liệu cho các mục điều hướng trong sidebar
 const sidebarNavItems = [
-  { label: "Đăng truyện", icon: PenLine, href: "#" },
+  { label: "Đăng truyện", icon: PenLine, href: "#" }, // Giữ nguyên hoặc đổi href nếu cần navigate
   {
     label: "Kho truyện",
     icon: Archive,
@@ -43,8 +46,13 @@ const sidebarNavItems = [
 ];
 
 const SettingsSidebar = ({ isOpen, onClose, username, userLoggedIn = false }) => {
-  // username và userLoggedIn là ví dụ, bạn cần truyền dữ liệu thực tế
-  // Dựa vào userLoggedIn để hiển thị phần thông tin người dùng
+  const navigate = useNavigate(); // THÊM: Sử dụng hook useNavigate
+
+  // THÊM: Hàm điều hướng
+  const handleNavigate = (path) => {
+    navigate(path);
+    onClose(); // Đóng sidebar sau khi điều hướng
+  };
 
   return (
     <>
@@ -63,7 +71,6 @@ const SettingsSidebar = ({ isOpen, onClose, username, userLoggedIn = false }) =>
       >
         {/* Header with Close Button */}
         <div className="flex justify-between items-center p-4 border-b border-stone-200">
-          {/* Có thể thêm tiêu đề ở đây nếu muốn, ví dụ "Menu" hoặc để trống */}
           {userLoggedIn ? (
              <div className="flex items-center">
               <Sun size={20} className="mr-2 text-yellow-500" />
@@ -90,14 +97,44 @@ const SettingsSidebar = ({ isOpen, onClose, username, userLoggedIn = false }) =>
                 <button className="text-xs bg-gray-200 hover:bg-gray-300 px-2.5 py-1 rounded text-gray-700">Thoát</button>
               </div>
               <ul className="space-y-1.5 text-sm text-gray-700">
-                <li className="flex justify-between items-center cursor-pointer hover:bg-stone-100 p-1.5 rounded">
+                <li
+                  onClick={() => handleNavigate('/user/upgrade-account')} // Ví dụ route
+                  className="flex justify-between items-center cursor-pointer hover:bg-stone-100 p-1.5 rounded"
+                >
                   <span>Nâng cấp tài khoản</span>
                   <span className="text-xs bg-red-500 text-white px-2 py-0.5 rounded-full font-semibold">NEW</span>
                 </li>
-                <li className="cursor-pointer hover:bg-stone-100 p-1.5 rounded">Tủ truyện của tôi</li>
-                <li className="cursor-pointer hover:bg-stone-100 p-1.5 rounded">Lịch sử giao dịch</li>
-                <li className="cursor-pointer hover:bg-stone-100 p-1.5 rounded">Cài đặt cá nhân</li>
-                <li className="cursor-pointer hover:bg-stone-100 p-1.5 rounded">Yêu cầu hỗ trợ</li>
+                <li
+                  onClick={() => handleNavigate('/user/my-bookshelf')} // Ví dụ route
+                  className="cursor-pointer hover:bg-stone-100 p-1.5 rounded flex items-center"
+                >
+                  Tủ truyện của tôi
+                </li>
+                {/* THÊM LỊCH SỬ ĐỌC TRUYỆN VÀO ĐÂY */}
+                <li
+                  onClick={() => handleNavigate('/user/reading-history')}
+                  className="cursor-pointer hover:bg-stone-100 p-1.5 rounded flex items-center"
+                >
+                  <BookOpen size={16} className="mr-2 text-gray-500" /> Lịch sử đọc truyện
+                </li>
+                <li
+                  onClick={() => handleNavigate('/user/transaction-history')}
+                  className="cursor-pointer hover:bg-stone-100 p-1.5 rounded flex items-center"
+                >
+                  <Repeat size={16} className="mr-2 text-gray-500" /> Lịch sử giao dịch
+                </li>
+                <li
+                  onClick={() => handleNavigate('/user/settings')} // Ví dụ route
+                  className="cursor-pointer hover:bg-stone-100 p-1.5 rounded flex items-center"
+                >
+                  Cài đặt cá nhân
+                </li>
+                <li
+                  onClick={() => handleNavigate('/user/support')} // Ví dụ route
+                  className="cursor-pointer hover:bg-stone-100 p-1.5 rounded flex items-center"
+                >
+                  Yêu cầu hỗ trợ
+                </li>
               </ul>
               <div className="mt-3 pt-3 border-t border-stone-200 grid grid-cols-2 gap-x-2 text-xs text-gray-600">
                 <div className="flex items-center">
@@ -105,7 +142,7 @@ const SettingsSidebar = ({ isOpen, onClose, username, userLoggedIn = false }) =>
                   <span className="ml-auto flex items-center"><KeyRound size={14} className="mr-1 text-gray-400" /> 0</span>
                 </div>
                 <div className="flex items-center">
-                  <Coins size={16} className="mr-1 text-yellow-600" /> 0 {/* Hoặc Package cho icon hộp quà */}
+                  <Coins size={16} className="mr-1 text-yellow-600" /> 0
                   <span className="ml-auto flex items-center"><Wallet size={14} className="mr-1 text-gray-400" /> 0</span>
                 </div>
               </div>
@@ -113,10 +150,12 @@ const SettingsSidebar = ({ isOpen, onClose, username, userLoggedIn = false }) =>
           )}
 
           {/* Nạp Button */}
-          <button className="w-full bg-orange-400 hover:bg-orange-500 text-white font-bold py-2.5 px-4 rounded-md flex items-center justify-center text-base mb-5 shadow hover:shadow-md transition-all">
+          <button
+            onClick={() => handleNavigate('/deposit')} // THÊM: Điều hướng khi nhấn nút Nạp
+            className="w-full bg-orange-400 hover:bg-orange-500 text-white font-bold py-2.5 px-4 rounded-md flex items-center justify-center text-base mb-5 shadow hover:shadow-md transition-all"
+          >
             Nạp
             <span role="img" aria-label="butterfly" className="ml-1.5 text-xl">🦋</span>
-            {/* Hoặc dùng icon Gift: <Gift size={20} className="ml-1.5" /> */}
           </button>
 
           {/* Navigation Items */}
@@ -124,17 +163,27 @@ const SettingsSidebar = ({ isOpen, onClose, username, userLoggedIn = false }) =>
             <ul className="space-y-1">
               {sidebarNavItems.map((item, index) => (
                 <li key={index}>
-                  <a href={item.href || "#"} className="flex items-center py-2 px-2.5 rounded-md hover:bg-stone-200 transition-colors group">
+                  {/* SỬA: Dùng onClick để navigate thay vì href cho các mục cần điều hướng bằng React Router */}
+                  <button
+                    onClick={() => item.href && item.href !== "#" ? handleNavigate(item.href) : undefined}
+                    className="w-full flex items-center py-2 px-2.5 rounded-md hover:bg-stone-200 transition-colors group text-left"
+                    // Vô hiệu hóa nếu href là "#" hoặc không có href
+                    disabled={!item.href || item.href === "#"}
+                  >
                     <item.icon size={18} className="mr-2.5 text-gray-600 group-hover:text-gray-800" />
                     <span className="text-sm font-medium text-gray-700 group-hover:text-gray-900">{item.label}</span>
-                  </a>
+                  </button>
                   {item.subItems && (
                     <ul className="pl-7 mt-1 space-y-0.5 text-xs">
                       {item.subItems.map((subItem, subIndex) => (
                         <li key={subIndex}>
-                          <a href={subItem.href || "#"} className="block py-1 px-2 rounded-md hover:bg-stone-200 transition-colors text-gray-500 hover:text-gray-700">
+                           <button
+                            onClick={() => subItem.href && subItem.href !== "#" ? handleNavigate(subItem.href) : undefined}
+                            className="w-full block py-1 px-2 rounded-md hover:bg-stone-200 transition-colors text-gray-500 hover:text-gray-700 text-left"
+                            disabled={!subItem.href || subItem.href === "#"}
+                          >
                             • {subItem.label}
-                          </a>
+                          </button>
                         </li>
                       ))}
                     </ul>

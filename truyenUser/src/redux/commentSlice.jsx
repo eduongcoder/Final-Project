@@ -12,7 +12,7 @@ export const getCommentsByChapter = createAsyncThunk(
   async (idChapter, { rejectWithValue }) => {
     try {
       const response = await axios.get(`${API_BASE_URL_COMMENT}/getAllByChapter/${idChapter}`);
-      if (response.data && response.data.code === 200 && Array.isArray(response.data.result)) {
+      if (response.data && response.data.code === 1000 && Array.isArray(response.data.result)) {
         // Sắp xếp comment, ví dụ: mới nhất lên đầu (nếu có trường timestamp)
         // Hoặc giữ nguyên thứ tự từ API nếu API đã sắp xếp
         return response.data.result;

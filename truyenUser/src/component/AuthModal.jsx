@@ -10,7 +10,7 @@ import {
 import {
   registerUser, // API đăng ký chính
   loginUserWithPassword, // API login email/password
-  // loginUserByEmailOnly, // API login chỉ bằng email (nếu bạn có luồng này)
+   loginUserByEmailOnly, // API login chỉ bằng email (nếu bạn có luồng này)
   createUserByEmailOnly, // API tạo/đồng bộ user chỉ với email (cho Google)
   sendOTP as sendOTPAPI,
   clearUserError
@@ -137,32 +137,76 @@ const AuthModal = ({ isOpen, onClose, onAuthSuccess }) => {
     }
   };
 
-  const handleGoogleLogin = async () => {
-    setLocalError(''); dispatch(clearUserError());
+   const handleGoogleLogin = async () => {
+    setLocalError('');
+    dispatch(clearUserError());
     const provider = new GoogleAuthProvider();
+    setIsLoading(true);
+
     try {
       const result = await signInWithPopup(auth, provider);
-      // Backend API /user/createUserByEmail sẽ xử lý "login or create" cho Google user
-      const googleSyncPayload = {
-        email: result.user.email, // API /createUserByEmail chỉ cần email
-        // Nếu API /createUserByEmail có thể nhận thêm thông tin để tạo user đầy đủ hơn:
-        // displayName: result.user.displayName,
-        // photoURL: result.user.photoURL,
-        // firebaseUid: result.user.uid,
-        // dobUser: new Date().toISOString(), // Default
-        // coin: 0 // Default
+      const googleUser = result.user;
+
+      const createUserPayload = {
+        email: googleUser.email,
+        // Thêm các trường khác nếu API của bạn hỗ trợ và bạn muốn gửi
+        // displayName: googleUser.displayName,
+        // photoURL: googleUser.photoURL,
+        // firebaseUid: googleUser.uid,
       };
-      await handleBackendOperation(createUserByEmailOnly, googleSyncPayload, "Google Login/Sync");
-    } catch (err) {
-      if (err.code !== 'auth/popup-closed-by-user' && err.code !== 'auth/cancelled-popup-request') {
-         if (!err.message && typeof err === 'string') { // Lỗi từ rejectWithValue của thunk
-            setLocalError(err);
+
+      console.log("Attempting to create/sync Google user with:", createUserPayload);
+      // Gọi createUserByEmailOnly và không dùng handleBackendOperation ở đây để có thể bắt lỗi cụ thể
+      const actionResultCreate = await dispatch(createUserByEmailOnly(createUserPayload));
+
+      if (createUserByEmailOnly.fulfilled.match(actionResultCreate)) {
+        console.log("Google user created/synced successfully via createUserByEmailOnly:", actionResultCreate.payload);
+        if (onAuthSuccess) onAuthSuccess(actionResultCreate.payload);
+        handleCloseModal();
+      } else if (createUserByEmailOnly.rejected.match(actionResultCreate)) {
+        // actionResultCreate.payload là giá trị từ rejectWithValue
+        const createError = actionResultCreate.payload;
+        console.error("Error during createUserByEmailOnly for Google:", createError);
+
+        // Kiểm tra lỗi "User already existed" (code 1010)
+        // Điều chỉnh điều kiện này cho phù hợp với cách API của bạn trả về lỗi
+        const isUserAlreadyExistedError =
+          (typeof createError === 'string' && createError.toLowerCase().includes("user already existed")) ||
+          (createError && createError.code === 1010) || // Nếu API trả về object lỗi có code
+          (createError && typeof createError.message === 'string' && createError.message.toLowerCase().includes("user already existed"));
+
+
+        if (isUserAlreadyExistedError) {
+          console.log("User already exists, attempting loginUserByEmailOnly for:", { email: googleUser.email });
+          // Gọi loginUserByEmailOnly và không dùng handleBackendOperation ở đây để có thể bắt lỗi cụ thể
+          const actionResultLogin = await dispatch(loginUserByEmailOnly({ email: googleUser.email }));
+
+          if (loginUserByEmailOnly.fulfilled.match(actionResultLogin)) {
+            console.log("Logged in existing Google user successfully via loginUserByEmailOnly:", actionResultLogin.payload);
+            if (onAuthSuccess) onAuthSuccess(actionResultLogin.payload);
+            handleCloseModal();
+          } else if (loginUserByEmailOnly.rejected.match(actionResultLogin)) {
+            const loginError = actionResultLogin.payload;
+            console.error("Error during loginUserByEmailOnly for existing Google user:", loginError);
+            const loginErrorMessage = typeof loginError === 'string' ? loginError : loginError?.message || "Đăng nhập Google thất bại sau khi user đã tồn tại.";
+            setLocalError(loginErrorMessage);
+          }
         } else {
-            setLocalError(err.message || `Đăng nhập Google thất bại.`);
+          // Nếu là lỗi khác không phải "User already existed" từ createUserByEmailOnly
+          const createErrorMessage = typeof createError === 'string' ? createError : createError?.message || "Đăng nhập/Đồng bộ Google thất bại.";
+          setLocalError(createErrorMessage);
         }
       }
+    } catch (firebaseAuthError) { // Lỗi từ signInWithPopup của Firebase
+      console.error("Firebase Google sign-in error:", firebaseAuthError);
+      if (firebaseAuthError.code !== 'auth/popup-closed-by-user' && firebaseAuthError.code !== 'auth/cancelled-popup-request') {
+        setLocalError(firebaseAuthError.message || `Đăng nhập Google thất bại.`);
+      }
+    } finally {
+      setIsLoading(false);
     }
   };
+
 
   if (!isOpen) return null;
   const currentLoadingState = isLoading || isOtpSending;

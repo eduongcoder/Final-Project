@@ -177,9 +177,17 @@ const userSlice = createSlice({
     otpMessage: null,
   },
   reducers: {
-    logoutUser: (state) => { state.currentUser = null; state.error = null; },
+    logoutUser: (state) => { state.currentUser = null; state.error = null;     localStorage.removeItem('currentUser');
+},
     clearUserError: (state) => { state.error = null; },
-    clearOtpMessage: (state) => { state.otpMessage = null; }
+    clearOtpMessage: (state) => { state.otpMessage = null; },
+    loadUserFromStorage: (state) => {
+    const savedUser = localStorage.getItem('currentUser');
+    if (savedUser) {
+      state.currentUser = JSON.parse(savedUser);
+    }
+  },
+  
   },
   extraReducers: (builder) => {
     builder
@@ -190,12 +198,18 @@ const userSlice = createSlice({
 
       // Login User With Password
       .addCase(loginUserWithPassword.pending, (state) => { state.loading = true; state.error = null; })
-      .addCase(loginUserWithPassword.fulfilled, (state, action) => { state.loading = false; state.currentUser = action.payload; })
+      .addCase(loginUserWithPassword.fulfilled, (state, action) => { state.loading = false; state.currentUser = action.payload; 
+          localStorage.setItem('currentUser', JSON.stringify(action.payload)); // Lưu vào localStorage
+
+      })
       .addCase(loginUserWithPassword.rejected, (state, action) => { state.loading = false; state.error = action.payload; })
 
       // Login User By Email Only
       .addCase(loginUserByEmailOnly.pending, (state) => { state.loading = true; state.error = null; })
-      .addCase(loginUserByEmailOnly.fulfilled, (state, action) => { state.loading = false; state.currentUser = action.payload; })
+      .addCase(loginUserByEmailOnly.fulfilled, (state, action) => { state.loading = false; state.currentUser = action.payload; 
+          localStorage.setItem('currentUser', JSON.stringify(action.payload)); // Lưu vào localStorage
+
+      })
       .addCase(loginUserByEmailOnly.rejected, (state, action) => { state.loading = false; state.error = action.payload; })
 
       // Create User By Email Only (Google Sync)
@@ -222,5 +236,5 @@ const userSlice = createSlice({
   }
 });
 
-export const { logoutUser, clearUserError, clearOtpMessage } = userSlice.actions;
+export const { logoutUser, clearUserError, clearOtpMessage,loadUserFromStorage} = userSlice.actions;
 export default userSlice.reducer;
