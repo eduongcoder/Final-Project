@@ -61,7 +61,7 @@ public class UserService {
 		String userName = request.getEmailUser().split("@")[0];
 
 		user = userMapper.toUser(request);
-		user.setEmailUser(userName);
+		user.setUserNameUser(userName);
 		user.setCoin(0);
 		user.setPasswordUser(passwordEncoder.encode(request.getPasswordUser()));
 		return userMapper.toUserRespone(userRepository.save(user));
