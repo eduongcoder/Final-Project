@@ -32,29 +32,36 @@ import lombok.extern.slf4j.Slf4j;
 public class ChapterController {
 
 	ChapterService chapterService;
-	
+
 	@GetMapping(value = "/getAll/{idNovel}")
 	public ApiRespone<List<ChapterRespone>> getAll(@PathVariable String idNovel) {
 		return ApiRespone.<List<ChapterRespone>>builder().result(chapterService.getAllChapter(idNovel)).build();
 	}
-	
+
 	@GetMapping(value = "/{idChapter}")
 	public ApiRespone<ChapterRespone> getChapterById(@PathVariable Integer idChapter) {
 		return ApiRespone.<ChapterRespone>builder().result(chapterService.getChapterById(idChapter)).build();
 	}
-	
-	@PostMapping(value = "/create",consumes = {"multipart/form-data"})
-	public ApiRespone<ChapterRespone> createChapter(@RequestPart ChapterCreationRequest request,@RequestParam(required = false) MultipartFile textFile) throws IOException {
-		return ApiRespone.<ChapterRespone>builder().result(chapterService.createChapter(request,textFile)).build();
+
+	@PostMapping(value = "/create", consumes = { "multipart/form-data" })
+	public ApiRespone<ChapterRespone> createChapter(@RequestPart ChapterCreationRequest request,
+			@RequestParam(required = false) MultipartFile textFile) throws IOException {
+		return ApiRespone.<ChapterRespone>builder().result(chapterService.createChapter(request, textFile)).build();
 	}
-	
-	@PutMapping(value = "/update",consumes = {"multipart/form-data"})
-	public ApiRespone<ChapterRespone> updateChapter(@RequestPart ChapterUpdateRequest request,@RequestParam(required = false) MultipartFile textFile) throws IOException {
-		return ApiRespone.<ChapterRespone>builder().result(chapterService.updateChapter(request,textFile)).build();
+
+	@GetMapping(value = "increaseViewChapter/{idChapter}")
+	public ApiRespone<Integer> increaseViewChapter(@PathVariable Integer idChapter) {
+		return ApiRespone.<Integer>builder().result(chapterService.increaseView(idChapter)).build();
 	}
-	
+
+	@PutMapping(value = "/update", consumes = { "multipart/form-data" })
+	public ApiRespone<ChapterRespone> updateChapter(@RequestPart ChapterUpdateRequest request,
+			@RequestParam(required = false) MultipartFile textFile) throws IOException {
+		return ApiRespone.<ChapterRespone>builder().result(chapterService.updateChapter(request, textFile)).build();
+	}
+
 	@DeleteMapping(value = "/{idChapter}")
 	public ApiRespone<Integer> deleteChapter(@PathVariable Integer idChapter) {
 		return ApiRespone.<Integer>builder().result(chapterService.deleteChapter(idChapter)).build();
-	} 
+	}
 }

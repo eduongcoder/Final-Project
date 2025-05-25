@@ -81,6 +81,13 @@ public class ChapterService {
 		return idChapter;
 	}
 
+	public Integer increaseView(Integer idChapter){
+		Chapter chapter=chapterRepository.findById(idChapter).get();
+		chapter.setViewChapter(chapter.getViewChapter()+1);
+		chapterRepository.save(chapter);
+		return chapter.getViewChapter();
+	}
+
 	public ChapterRespone updateChapter(ChapterUpdateRequest request, MultipartFile textFile) throws IOException {
 		Chapter chapterOgirin=chapterRepository.findById(request.getIdChapter()).get();
 		Chapter chapter = chapterMapper.toChapterUpdate(request);
