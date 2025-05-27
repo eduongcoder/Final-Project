@@ -19,5 +19,4 @@ public class CloudinaryConfig {
 		return c; 
 	}
 	
-	
 }
