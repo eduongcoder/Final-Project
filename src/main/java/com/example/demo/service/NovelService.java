@@ -8,16 +8,22 @@ import java.util.Set;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.example.demo.dto.request.NovelAddAuthorRequest;
+import com.example.demo.dto.request.NovelAddCategoryRequest;
 import com.example.demo.dto.request.NovelCreatationRequest;
+import com.example.demo.dto.request.NovelRemoveAuthorRequest;
+import com.example.demo.dto.request.NovelRemoveCategoryRequest;
 import com.example.demo.dto.request.NovelUpdateRequest;
 import com.example.demo.dto.respone.NovelRespone;
 import com.example.demo.dto.respone.UploadFileRespone;
 import com.example.demo.entity.Author;
+import com.example.demo.entity.Category;
 import com.example.demo.entity.Novel;
 import com.example.demo.exception.AppException;
 import com.example.demo.exception.ErrorCode;
 import com.example.demo.mapper.INovelMapper;
 import com.example.demo.repository.IAuthorRepository;
+import com.example.demo.repository.ICategoryRepository;
 import com.example.demo.repository.INovelRepository;
 
 import lombok.AccessLevel;
@@ -32,6 +38,7 @@ public class NovelService {
 	INovelMapper novelMapper;
 	IAuthorRepository authorRepository;
 	UploadFileService uploadFileService;
+	ICategoryRepository categoryRepository;
 
 	public List<NovelRespone> getAll() {
 		return novelRepository.findAll().stream().map(t -> novelMapper.toNovelRespone(t)).toList();
@@ -88,6 +95,58 @@ public class NovelService {
 			throw new AppException(ErrorCode.DELETE_CONTRAINT);
 		}
 
+	}
+
+	public NovelRespone removeAuthor(NovelRemoveAuthorRequest request) {
+		Novel novel = novelRepository.findById(request.getIdNovel())
+				.orElseThrow(() -> new AppException(ErrorCode.NOVEL_NOT_EXISTED));
+		Author author = authorRepository.findById(request.getIdAuthor())
+				.orElseThrow(() -> new AppException(ErrorCode.AUTHOR_NOT_EXISTED));
+
+		if (novel.getAuthors().remove(author)) {
+			novelRepository.save(novel);
+		}
+
+		return novelMapper.toNovelRespone(novel);
+	}
+
+	public NovelRespone addAuthor(NovelAddAuthorRequest request) {
+		Novel novel = novelRepository.findById(request.getIdNovel())
+				.orElseThrow(() -> new AppException(ErrorCode.NOVEL_NOT_EXISTED));
+		Author author = authorRepository.findById(request.getIdAuthor())
+				.orElseThrow(() -> new AppException(ErrorCode.AUTHOR_NOT_EXISTED));
+
+		if (novel.getAuthors().add(author)) {
+			novelRepository.save(novel);
+		}
+
+		return novelMapper.toNovelRespone(novel);
+	}
+
+	public NovelRespone removeCategory(NovelRemoveCategoryRequest request) {
+		Novel novel = novelRepository.findById(request.getIdNovel())
+				.orElseThrow(() -> new AppException(ErrorCode.NOVEL_NOT_EXISTED));
+		Category category = categoryRepository.findById(request.getIdCategory())
+				.orElseThrow(() -> new AppException(ErrorCode.CATEGORY_NOT_EXISTED));
+
+		if (novel.getCategories().remove(category)) {
+			novelRepository.save(novel);
+		}
+
+		return novelMapper.toNovelRespone(novel);
+	}
+
+	public NovelRespone addCategory(NovelAddCategoryRequest request) {
+		Novel novel = novelRepository.findById(request.getIdNovel())
+				.orElseThrow(() -> new AppException(ErrorCode.NOVEL_NOT_EXISTED));
+		Category category = categoryRepository.findById(request.getIdCategory())
+				.orElseThrow(() -> new AppException(ErrorCode.CATEGORY_NOT_EXISTED));
+
+		if (novel.getCategories().add(category)) {
+			novelRepository.save(novel);
+		}
+
+		return novelMapper.toNovelRespone(novel);
 	}
 
 }

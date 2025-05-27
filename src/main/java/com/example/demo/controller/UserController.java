@@ -26,6 +26,8 @@ import com.example.demo.service.HistoryReadService;
 import com.example.demo.service.MailService;
 import com.example.demo.service.UserService;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -36,6 +38,7 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE,makeFinal = true)
 @Slf4j
+@Tag(name = "User Controller", description = "API quản lý người dùng: đăng ký, đăng nhập, cập nhật, xoá, OTP, avatar và lịch sử đọc")
 public class UserController {
 
 	UserService userService;
@@ -43,69 +46,79 @@ public class UserController {
 	HistoryReadService historyReadService;
 	
 	@GetMapping("/getAllUser")
-	public ApiRespone<List<UserRespone>> getAllUser(){
+	@Operation(summary = "Lấy tất cả người dùng", description = "Trả về danh sách tất cả người dùng hiện có trong hệ thống.")
+	public ApiRespone<List<UserRespone>> getAllUser() {
 		return ApiRespone.<List<UserRespone>>builder().result(userService.getAllUser()).build();
 	}
-	
+
 	@PostMapping("/createUser")
-	public ApiRespone<UserRespone> createUser(@RequestBody UserCreationRequest request){
-		return ApiRespone.<UserRespone>builder()
-				.result(userService.createUser(request))
-				.build(); 
+	@Operation(summary = "Tạo người dùng mới", description = "Đăng ký người dùng thông thường bằng thông tin tài khoản.")
+	public ApiRespone<UserRespone> createUser(@RequestBody UserCreationRequest request) {
+		return ApiRespone.<UserRespone>builder().result(userService.createUser(request)).build();
 	}
-	
+
 	@PostMapping("/createUserByEmail")
-	public ApiRespone<UserRespone> createUserByEmail(@RequestBody UserCreationByEmailRequest request){
-		return ApiRespone.<UserRespone>builder()
-				.result(userService.createUserByEmail(request))
-				.build();
-	} 
-	
+	@Operation(summary = "Tạo người dùng bằng email", description = "Đăng ký người dùng chỉ bằng email (dùng cho xác thực OTP).")
+	public ApiRespone<UserRespone> createUserByEmail(@RequestBody UserCreationByEmailRequest request) {
+		return ApiRespone.<UserRespone>builder().result(userService.createUserByEmail(request)).build();
+	}
+
 	@PostMapping("/sendOTP")
-	public ApiRespone<String> sendOTP(@RequestParam String email){
-		String otp=mailService.generateOTP(6);
+	@Operation(summary = "Gửi OTP qua email", description = "Gửi mã OTP (6 chữ số) tới địa chỉ email để xác thực.")
+	public ApiRespone<String> sendOTP(@RequestParam String email) {
+		String otp = mailService.generateOTP(6);
 		mailService.sendOTPEmail(email, "Xác nhận OTP", otp);
 		return ApiRespone.<String>builder().result(otp).build();
 	}
-	
+
 	@PostMapping("/login")
-	public ApiRespone<UserRespone> login(@RequestBody UserLoginRequest request){
+	@Operation(summary = "Đăng nhập", description = "Đăng nhập bằng tài khoản thông thường (email và mật khẩu).")
+	public ApiRespone<UserRespone> login(@RequestBody UserLoginRequest request) {
 		return ApiRespone.<UserRespone>builder().result(userService.login(request)).build();
 	}
-	
+
 	@PostMapping("/loginByEmail")
-	public ApiRespone<UserRespone> loginByEmail(@RequestBody UserLoginByEmailRequest request){
+	@Operation(summary = "Đăng nhập bằng email", description = "Đăng nhập nhanh chỉ với email (dành cho OTP).")
+	public ApiRespone<UserRespone> loginByEmail(@RequestBody UserLoginByEmailRequest request) {
 		return ApiRespone.<UserRespone>builder().result(userService.loginByEmail(request)).build();
 	}
-	
+
 	@PostMapping(value = "/uploadAvatar", consumes = { "multipart/form-data" })
-	public ApiRespone<UserRespone> uploadAvatar(@RequestParam MultipartFile image,@RequestParam String email) throws IOException {
+	@Operation(summary = "Cập nhật avatar người dùng", description = "Tải ảnh đại diện mới cho người dùng theo email.")
+	public ApiRespone<UserRespone> uploadAvatar(@RequestParam MultipartFile image, @RequestParam String email) throws IOException {
 		return ApiRespone.<UserRespone>builder().result(userService.uploadUser(image, email)).build();
 	}
-	 
+
 	@PutMapping(value = "/updateUser")
-	public ApiRespone<UserRespone> updateUser(@RequestBody UserUpdateRequest request) throws IOException{
-	
+	@Operation(summary = "Cập nhật thông tin người dùng", description = "Chỉnh sửa thông tin của người dùng.")
+	public ApiRespone<UserRespone> updateUser(@RequestBody UserUpdateRequest request) throws IOException {
 		return ApiRespone.<UserRespone>builder().result(userService.updateUser(request)).build();
-	} 
-	
+	}
+
 	@DeleteMapping("/deleteUser")
-	public ApiRespone<String> deleteUser(@RequestParam String idUser){
+	@Operation(summary = "Xoá người dùng", description = "Xoá người dùng theo ID.")
+	public ApiRespone<String> deleteUser(@RequestParam String idUser) {
 		return ApiRespone.<String>builder().result(userService.deleteUser(idUser)).build();
 	}
+
 	@PostMapping("/createHistory")
-	public ApiRespone<UserRespone> createHistory(@RequestParam String idNovel,@RequestParam String email,@RequestParam String titleChapter){
-//		log.info(idNovel + " "+ email+ " "+ titleChapter);
-		return ApiRespone.<UserRespone>builder().result(userService.createHistoryRead(idNovel, email,titleChapter)).build();
+	@Operation(summary = "Thêm lịch sử đọc chương truyện", description = "Tạo lịch sử đọc chương truyện theo email, ID truyện và tiêu đề chương.")
+	public ApiRespone<UserRespone> createHistory(@RequestParam String idNovel,
+	                                             @RequestParam String email,
+	                                             @RequestParam String titleChapter) {
+		return ApiRespone.<UserRespone>builder().result(userService.createHistoryRead(idNovel, email, titleChapter)).build();
 	}
-	
+
 	@DeleteMapping("/deleteHistory")
-	public ApiRespone<String> deleteHistory(@RequestBody HistoryId historyId){
+	@Operation(summary = "Xoá lịch sử đọc", description = "Xoá lịch sử đọc truyện theo đối tượng HistoryId.")
+	public ApiRespone<String> deleteHistory(@RequestBody HistoryId historyId) {
 		return ApiRespone.<String>builder().result(historyReadService.deleteHistoryRead(historyId)).build();
 	}
+
 	@GetMapping("/getHistory")
+	@Operation(summary = "Lấy lịch sử đọc", description = "Trả về danh sách các chương truyện đã đọc của người dùng theo ID.")
 	public ApiRespone<List<HistoryReadRespone>> getHistory(@RequestParam String idUser) {
-		return  ApiRespone.<List<HistoryReadRespone>>builder().result(historyReadService.getHistoryRead(idUser)).build();
+		return ApiRespone.<List<HistoryReadRespone>>builder().result(historyReadService.getHistoryRead(idUser)).build();
 	}
 	
 }
