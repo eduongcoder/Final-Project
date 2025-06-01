@@ -8,12 +8,12 @@ import {
   getChapterContentById,
   clearChapterState
 } from '../../redux/chapterSlice';
-// KHÔNG import gì từ userSlice ở đây nếu bạn không dùng trực tiếp action nào từ nó trong file này.
-// Việc lấy currentUser sẽ chỉ qua useSelector.
+// Import createHistory từ userSlice
+import { createHistory } from '../../redux/userSlice'; // << --- THÊM DÒNG NÀY
 
 import { FaCog, FaListUl, FaAngleLeft, FaAngleRight } from 'react-icons/fa';
-import AudioPlayer from '../AudioPlayer'; // Đường dẫn component
-import ChapterComments from '../ChapterComments'; // Đường dẫn component
+import AudioPlayer from '../AudioPlayer';
+import ChapterComments from '../ChapterComments';
 
 const ReadingPage = () => {
   const { novelId, chapterId } = useParams();
@@ -30,10 +30,7 @@ const ReadingPage = () => {
     errorListForReading,
   } = useSelector((state) => state.chapters);
 
-  // Lấy thông tin người dùng hiện tại từ Redux store (userSlice)
-  // Thêm kiểm tra an toàn nếu state.user có thể undefined
   const currentUser = useSelector((state) => state.user?.currentUser || null);
-
 
   const [showChapterListDropdown, setShowChapterListDropdown] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -45,7 +42,7 @@ const ReadingPage = () => {
   const contentRef = useRef(null);
 
   const [showAudioPlayer, setShowAudioPlayer] = useState(true);
-  const audioUrl = currentChapterContent?.audioUrl || "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3";
+  // const audioUrl = currentChapterContent?.audioUrl || "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3";
 
 
   useEffect(() => {
@@ -76,6 +73,49 @@ const ReadingPage = () => {
       localStorage.setItem(`lastRead_${novelId}`, chapterId);
     }
   }, [dispatch, novelId, chapterId]);
+
+
+  // ---- THÊM useEffect ĐỂ GỌI createHistory ----
+  useEffect(() => {
+    // Kiểm tra xem người dùng đã đăng nhập, nội dung chương đã tải xong,
+    // và ID chương hiện tại khớp với ID chương trong URL
+    if (
+      currentUser &&
+      currentChapterContent &&
+      // currentChapterContent.idChapter === chapterId && // Đảm bảo đúng chương đã được tải
+      !loadingContent && // Đảm bảo không còn loading nội dung
+      !errorContent && // Đảm bảo không có lỗi khi tải nội dung
+      novelId && // Đảm bảo novelId tồn tại
+      currentChapterContent.titleChapter // Đảm bảo có tiêu đề chương
+    ) {
+      const historyPayload = {
+        idNovel: novelId,
+        email: currentUser.emailUser, // Hoặc trường email tương ứng trong currentUser
+        titleChapter: currentChapterContent.titleChapter,
+      };
+      console.log("Đang dispatch createHistory với payload:", historyPayload);
+      dispatch(createHistory(historyPayload));
+    }
+    else {
+      // In ra từng điều kiện để debug dễ hơn
+      if (!currentUser) console.log("Không có currentUser");
+      if (!currentChapterContent) console.log("Không có currentChapterContent");
+      if (currentChapterContent && currentChapterContent.idChapter !== chapterId) console.log("idChapter không khớp:", currentChapterContent.idChapter, chapterId);
+      if (loadingContent) console.log("Đang loadingContent");
+      if (errorContent) console.log("Có errorContent:", errorContent);
+      if (!novelId) console.log("Không có novelId");
+      if (currentChapterContent && !currentChapterContent.titleChapter) console.log("Không có titleChapter");
+    }
+  }, [
+    currentUser,
+    currentChapterContent,
+    loadingContent, // Thêm loadingContent và errorContent vào dependency array
+    errorContent,   // để useEffect này chạy lại khi trạng thái loading/error thay đổi
+    novelId,
+    chapterId,
+    dispatch,
+  ]);
+  // --------------------------------------------
 
   const { currentChapterIndex, prevChapterDetails, nextChapterDetails } = useMemo(() => {
     if (!chaptersForReadingPageDropdown || chaptersForReadingPageDropdown.length === 0) {
@@ -122,7 +162,6 @@ const ReadingPage = () => {
     </div>
   );
 
-  // Cập nhật logic loading và error
   if (novelLoading && !currentNovel) return <div className="flex justify-center items-center min-h-screen text-xl">Đang tải thông tin truyện...</div>;
   if (novelError && !currentNovel) return renderErrorText(novelError, "thông tin truyện");
 
@@ -136,24 +175,22 @@ const ReadingPage = () => {
     if (loadingContent && (!currentChapterContent || currentChapterContent.idChapter !== chapterId)) {
       return <div className="flex justify-center items-center min-h-screen text-xl">Đang tải nội dung chương...</div>;
     }
+    // Sửa điều kiện lỗi: chỉ hiển thị lỗi nội dung khi currentChapterContent không khớp VÀ có errorContent
     if (errorContent && (!currentChapterContent || currentChapterContent.idChapter !== chapterId)) {
       return renderErrorText(errorContent, "nội dung chương");
     }
   }
 
   if (!currentNovel ||
-      (!chaptersForReadingPageDropdown && !loadingListForReading && !errorListForReading) || // Nếu chưa có danh sách chương và không loading/error
-      (!currentChapterContent && !loadingContent && !errorContent) // Nếu chưa có nội dung chương và không loading/error
+      (!chaptersForReadingPageDropdown && !loadingListForReading && !errorListForReading) ||
+      (!currentChapterContent && !loadingContent && !errorContent && (!errorContent || (currentChapterContent && currentChapterContent.idChapter !== chapterId))) // Điều kiện errorContent đã được xử lý ở trên
      ) {
-    // Xử lý trường hợp danh sách chương rỗng sau khi đã tải xong
     if (currentNovel && chaptersForReadingPageDropdown && chaptersForReadingPageDropdown.length === 0 && !loadingListForReading && !errorListForReading) {
       return <div className="flex justify-center items-center min-h-screen text-xl">Truyện này chưa có chương nào.</div>;
     }
-    // Các trường hợp khác không có dữ liệu cần thiết (có thể do vẫn đang trong quá trình fetch ban đầu)
     if (!novelLoading && !loadingListForReading && !loadingContent) {
         return <div className="flex justify-center items-center min-h-screen text-xl">Không tìm thấy dữ liệu cần thiết.</div>;
     }
-    // Nếu vẫn còn bất kỳ trạng thái loading nào, hiển thị thông báo chung
     return <div className="flex justify-center items-center min-h-screen text-xl">Đang tải dữ liệu...</div>;
   }
 
@@ -245,8 +282,7 @@ const ReadingPage = () => {
         />
       </main>
 
-      {/* Component Bình luận */}
-      {chapterId && currentNovel && currentChapterContent && ( // Đảm bảo có currentChapterContent trước khi render comments
+      {chapterId && currentNovel && currentChapterContent && (
         <div className="container mx-auto px-4 sm:px-8 md:px-16 lg:px-24 xl:px-32 py-8">
           <ChapterComments
             chapterId={chapterId}
