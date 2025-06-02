@@ -32,7 +32,7 @@ import lombok.extern.slf4j.Slf4j;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @Slf4j
 @Tag(name = "Chapter Controller", description = "API quản lý chương truyện: tạo, cập nhật, xoá, xem chi tiết và tăng lượt xem")
-public class ChapterController {
+public class ChapterController { 
 
 	ChapterService chapterService;
 

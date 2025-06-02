@@ -14,21 +14,19 @@ import com.example.demo.dto.request.UserCreationByEmailRequest;
 import com.example.demo.dto.request.UserCreationRequest;
 import com.example.demo.dto.request.UserLoginByEmailRequest;
 import com.example.demo.dto.request.UserLoginRequest;
-import com.example.demo.dto.request.NovelRemoveAuthorRequest;
 import com.example.demo.dto.request.UserUpdateRequest;
 import com.example.demo.dto.respone.HistoryReadRespone;
 import com.example.demo.dto.respone.UploadFileRespone;
 import com.example.demo.dto.respone.UserRespone;
-import com.example.demo.entity.Author;
 import com.example.demo.entity.HistoryId;
 import com.example.demo.entity.HistoryRead;
 import com.example.demo.entity.Novel;
 import com.example.demo.entity.User;
+import com.example.demo.enums.Role;
 import com.example.demo.exception.AppException;
 import com.example.demo.exception.ErrorCode;
 import com.example.demo.mapper.IHistoryReadMapper;
 import com.example.demo.mapper.IUserMapper;
-import com.example.demo.repository.IAuthorRepository;
 import com.example.demo.repository.IHistoryReadRepository;
 import com.example.demo.repository.INovelRepository;
 import com.example.demo.repository.IUserRepository;
@@ -50,6 +48,7 @@ public class UserService {
 	IHistoryReadRepository historyReadRepository;
 	IHistoryReadMapper historyReadMapper;
 	HistoryReadService historyReadService;
+	AuthenticationService authenticationService;
 	
 	public List<UserRespone> getAllUser() {
 		return userRepository.findAll().stream().map(t -> userMapper.toUserRespone(t)).toList();
@@ -67,6 +66,7 @@ public class UserService {
 		user = userMapper.toUser(request);
 		user.setUserNameUser(userName);
 		user.setCoin(0);
+		user.setRole(Role.MEMBER);
 		user.setPasswordUser(passwordEncoder.encode(request.getPasswordUser()));
 		return userMapper.toUserRespone(userRepository.save(user));
 
@@ -84,6 +84,8 @@ public class UserService {
 
 		user = userMapper.toUserByEmail(request);
 		user.setCoin(0);
+		user.setRole(Role.MEMBER);
+
 		user.setUserNameUser(userName);
 
 		return userMapper.toUserRespone(userRepository.save(user));
@@ -106,7 +108,7 @@ public class UserService {
 		UserRespone userRespone= userMapper.toUserRespone(user);
 		List<HistoryReadRespone> historyReadRespones=historyReadService.getHistoryRead(userRespone.getIdUser());
 		userRespone.setHistoryRead(historyReadRespones);
-		
+		userRespone.setToken(authenticationService.generateToken(user));
 		return userRespone;
 	}
 
@@ -120,7 +122,20 @@ public class UserService {
 		UserRespone userRespone= userMapper.toUserRespone(user);
 		List<HistoryReadRespone> historyReadRespones=historyReadService.getHistoryRead(userRespone.getIdUser());
 		userRespone.setHistoryRead(historyReadRespones);
+		userRespone.setToken(authenticationService.generateToken(user));
+
+		return userRespone;
+	}
+	
+	public UserRespone grantRole(String idUser) {
+		User user = userRepository.findByIdUser(idUser).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
+
+		user.setRole(Role.MANAGER);
+		user = userRepository.save(user);
 		
+		UserRespone userRespone=userMapper.toUserRespone(user);
+		
+		userRespone.setToken(authenticationService.generateToken(user));
 		return userRespone;
 	}
 
@@ -154,7 +169,7 @@ public class UserService {
 	}
 	
 	public String deleteUser(String idUser) {
-		User user = userRepository.findByIdUser(idUser);
+		User user=userRepository.findByIdUser(idUser).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
 		if (user == null) {
 			throw new AppException(ErrorCode.USER_NOT_EXISTED);
 		}

@@ -6,10 +6,12 @@ import org.springframework.stereotype.Repository;
 import com.example.demo.entity.Novel;
 import com.example.demo.entity.User;
 import java.util.List;
+import java.util.Optional;
 
 
 @Repository
 public interface IUserRepository extends JpaRepository<User, String>{
 	User findByEmailUser(String emailUser);
-	User findByIdUser(String idUser);
+	Optional<User> findByIdUser(String idUser);
+    Optional<User> findByUserNameUser(String userNameUser);
 }

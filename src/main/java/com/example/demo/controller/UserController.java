@@ -5,6 +5,7 @@ import java.util.List;
 
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -13,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.example.demo.dto.request.LoginRequest;
 import com.example.demo.dto.request.UserCreationByEmailRequest;
 import com.example.demo.dto.request.UserCreationRequest;
 import com.example.demo.dto.request.UserLoginByEmailRequest;
@@ -34,9 +36,9 @@ import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 
 @RestController
-@RequestMapping("user")
+@RequestMapping("/user")
 @RequiredArgsConstructor
-@FieldDefaults(level = AccessLevel.PRIVATE,makeFinal = true)
+@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @Slf4j
 @Tag(name = "User Controller", description = "API quản lý người dùng: đăng ký, đăng nhập, cập nhật, xoá, OTP, avatar và lịch sử đọc")
 public class UserController {
@@ -44,7 +46,7 @@ public class UserController {
 	UserService userService;
 	MailService mailService;
 	HistoryReadService historyReadService;
-	
+
 	@GetMapping("/getAllUser")
 	@Operation(summary = "Lấy tất cả người dùng", description = "Trả về danh sách tất cả người dùng hiện có trong hệ thống.")
 	public ApiRespone<List<UserRespone>> getAllUser() {
@@ -85,7 +87,8 @@ public class UserController {
 
 	@PostMapping(value = "/uploadAvatar", consumes = { "multipart/form-data" })
 	@Operation(summary = "Cập nhật avatar người dùng", description = "Tải ảnh đại diện mới cho người dùng theo email.")
-	public ApiRespone<UserRespone> uploadAvatar(@RequestParam MultipartFile image, @RequestParam String email) throws IOException {
+	public ApiRespone<UserRespone> uploadAvatar(@RequestParam MultipartFile image, @RequestParam String email)
+			throws IOException {
 		return ApiRespone.<UserRespone>builder().result(userService.uploadUser(image, email)).build();
 	}
 
@@ -103,10 +106,10 @@ public class UserController {
 
 	@PostMapping("/createHistory")
 	@Operation(summary = "Thêm lịch sử đọc chương truyện", description = "Tạo lịch sử đọc chương truyện theo email, ID truyện và tiêu đề chương.")
-	public ApiRespone<UserRespone> createHistory(@RequestParam String idNovel,
-	                                             @RequestParam String email,
-	                                             @RequestParam String titleChapter) {
-		return ApiRespone.<UserRespone>builder().result(userService.createHistoryRead(idNovel, email, titleChapter)).build();
+	public ApiRespone<UserRespone> createHistory(@RequestParam String idNovel, @RequestParam String email,
+			@RequestParam String titleChapter) {
+		return ApiRespone.<UserRespone>builder().result(userService.createHistoryRead(idNovel, email, titleChapter))
+				.build();
 	}
 
 	@DeleteMapping("/deleteHistory")
@@ -120,5 +123,24 @@ public class UserController {
 	public ApiRespone<List<HistoryReadRespone>> getHistory(@RequestParam String idUser) {
 		return ApiRespone.<List<HistoryReadRespone>>builder().result(historyReadService.getHistoryRead(idUser)).build();
 	}
-	
+
+	@PutMapping(value = "/grantRole/{idUser}")
+	@Operation(summary = "Trao quyền manager cho tài khoản", description = "Nhập id User dạng string, nó sẽ kiếm thấy thì thao quyền manager không thấy thì báo ko tìm thấy, token được trả về là token mới có role mới")
+	ApiRespone<UserRespone> grantRole(@PathVariable String idUser) {
+		return ApiRespone.<UserRespone>builder().result(userService.grantRole(idUser)).build();
+	}
+
+//	@PostMapping("/register")
+//	UserDTO register(@RequestBody RegisterRequest registerRequest) {
+////		JsonSchemaValidator.validate(registerRequest, "registerSchema.json");
+//
+//		UserDTO userDTO = userService.createUser(registerRequest);
+//
+//		if (userDTO == null) {
+//			return null;
+//		} else {
+//			return userDTO;
+//		}
+//	}
+
 }

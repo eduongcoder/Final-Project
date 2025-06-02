@@ -1,0 +1,37 @@
+app:
+  security:
+    whitelist:
+      - GET:/v3/api-docs/**
+      - GET:/swagger-ui/**
+      - GET:/swagger-ui.html
+      - GET:/webjars/**
+      - POST:/user/**
+      - GET:/user/getAllUser
+      - POST:/user/createUserByEmail
+      - GET:/user/createUser
+      - GET:/user/login
+      - GET:/user/loginByEmail
+
+    permission:
+      PROJECT:
+        - GET:/project/getAll
+        - GET:/project/getByProjectId/**
+        - POST:/project/createProject
+        - POST:/project/addUser
+        - POST:/project/addTask
+        - POST:/project/removeUser
+        - POST:/project/removeTask
+        - PUT:/project/updateProject
+        - DELETE:/project/deleteProject/**
+      TASK:
+        - GET:/task/getAll
+        - GET:/task/getByTaskId/**
+        - POST:/task/createTask
+        - POST:/task/addUser
+        - POST:/task/removeTask
+        - PUT:/task/updateTask
+        - DELETE:/task/deleteTask/**
+    roles:
+      ROLE_MEMBER:
+      ROLE_MANAGER:
+      ROLE_ADMIN:

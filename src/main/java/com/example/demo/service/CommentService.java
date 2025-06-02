@@ -52,7 +52,7 @@ public class CommentService {
 	
 	
 	public CommentRespone createComment(CommentCreationRequest request) {
-		User user=userRepository.findByIdUser(request.getUser());
+		User user=userRepository.findByIdUser(request.getUser()).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
 		Chapter chapter=chapterRepository.findById(request.getChapter()).get();
 		Comment comment=commentMapper.toComment(request);
 		comment.setUser(user);
@@ -64,7 +64,7 @@ public class CommentService {
 	}
 	
 	public CommentRespone updateComment(CommentUpdateRequest request) {
-		User user=userRepository.findByIdUser(request.getUser());
+		User user=userRepository.findByIdUser(request.getUser()).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
 		Chapter chapter=chapterRepository.findById(request.getChapter()).get();
 
 		Comment comment=commentMapper.toCommentUpdate(request);
@@ -76,7 +76,7 @@ public class CommentService {
 	}
 	
 	public CommentRespone updatelikeComment(CommentUpdateLikeRequest request) {
-		User user=userRepository.findByIdUser(request.getIdUser());
+		User user=userRepository.findByIdUser(request.getIdUser()).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
 		Chapter chapter=chapterRepository.findById(request.getIdChapter()).get();
 
 		Comment comment=commentRepository.findById(request.getIdComment()).get();
@@ -88,7 +88,7 @@ public class CommentService {
 	}
 	
 	public CommentRespone updatedislikeComment(CommentUpdateLikeRequest request) {
-		User user=userRepository.findByIdUser(request.getIdUser());
+		User user=userRepository.findByIdUser(request.getIdUser()).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
 		Chapter chapter=chapterRepository.findById(request.getIdChapter()).get();
 
 		Comment comment=commentRepository.findById(request.getIdComment()).get();

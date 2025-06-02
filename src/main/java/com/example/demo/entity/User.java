@@ -5,10 +5,14 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
+import com.example.demo.enums.Role;
 import com.example.demo.enums.Status;
 
 import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -39,6 +43,10 @@ public class User {
 
 	String avatarUser;
 
+    @Column(name = "role",nullable = false)
+    @Enumerated(EnumType.STRING)
+    Role role;
+	
 	LocalDateTime dobUser;
 
 	String publicIdAvartarUser;

@@ -26,6 +26,8 @@ public class UserRespone {
 
 	String avatarUser;
 
+	String token;
+	
 	LocalDateTime dobUser;
 
 	String publicIdAvartarUser;
