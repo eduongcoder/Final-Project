@@ -36,6 +36,7 @@ public class ChapterController {
 
 	ChapterService chapterService;
 
+
 	@GetMapping(value = "/getAll/{idNovel}")
 	@Operation(summary = "Lấy danh sách chương theo truyện", description = "Trả về danh sách tất cả các chương thuộc truyện có ID tương ứng.")
 	public ApiRespone<List<ChapterRespone>> getAll(@PathVariable String idNovel) {

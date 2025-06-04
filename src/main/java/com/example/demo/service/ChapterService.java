@@ -33,6 +33,10 @@ public class ChapterService {
 	INovelRepository novelRepository;
 	TextService textService;
 	
+	// public List<ChapterRespone> getAll(){
+	// 	return chapterRepository.getAll().stream().map(t -> chapterMapper.toChapterRespone(t)).toList();
+	// }
+
 	public List<ChapterRespone> getAllChapter(String idNovel) {
 
 		return chapterRepository.findByNovel_IdNovel(idNovel).stream().map(t -> chapterMapper.toChapterRespone(t))
