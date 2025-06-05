@@ -36,10 +36,9 @@ public class SecurityConfig {
 	public PasswordEncoder passwordEncoder() {
 		return new BCryptPasswordEncoder(10);
 	}
-	
+
 	@Value("${app.security.singer-key}")
 	private String SIGNER_KEY;
-
 
 	@Autowired
 	private SecurityProperties securityProperties;
@@ -47,7 +46,7 @@ public class SecurityConfig {
 	@Bean
 	public SecurityFilterChain filterChain(HttpSecurity httpSecurity, RolePermissionResolver resolver)
 			throws Exception {
-
+		httpSecurity.cors(cors -> cors.configurationSource(corsConfigurationSource()));
 
 		httpSecurity.oauth2ResourceServer(oauth2 -> oauth2
 				.jwt(jwt -> jwt.decoder(jwtDecoder()).jwtAuthenticationConverter(jwtAuthenticationConverter())));
@@ -56,18 +55,19 @@ public class SecurityConfig {
 			// ✅ WHITELIST
 			for (String endpoint : resolver.getWhitelist()) {
 				String[] parts = endpoint.split(":", 2);
-//				log.info("✅ Whitelisted: {} {}", parts[0], parts[1]);
+				// log.info("✅ Whitelisted: {} {}", parts[0], parts[1]);
 				auth.requestMatchers(HttpMethod.valueOf(parts[0]), parts[1]).permitAll();
 			}
 
 			// ✅ ROLE-PERMISSION MAPPING
 			for (String role : securityProperties.getRoles().keySet()) {
 				Set<String> endpoints = resolver.getEndpointsForRole(role);
-//				log.info("🔐 Role {} has endpoints: {}", role, endpoints);
+				// log.info("🔐 Role {} has endpoints: {}", role, endpoints);
 				for (String endpoint : endpoints) {
 					String[] parts = endpoint.split(":", 2);
-//					log.info("➡️ Mapping role [{}] to: {} {}", role, parts[0], parts[1]);
-//					log.info("🔍 Comparing with ROLE_MANAGER equals: {}", "ROLE_MANAGER".equals(role));
+					// log.info("➡️ Mapping role [{}] to: {} {}", role, parts[0], parts[1]);
+					// log.info("🔍 Comparing with ROLE_MANAGER equals: {}",
+					// "ROLE_MANAGER".equals(role));
 					auth.requestMatchers(HttpMethod.valueOf(parts[0]), parts[1]).hasAuthority(role.toString());
 				}
 			}
@@ -77,7 +77,6 @@ public class SecurityConfig {
 
 		httpSecurity.csrf(AbstractHttpConfigurer::disable);
 
-		
 		return httpSecurity.build();
 	}
 
@@ -96,36 +95,39 @@ public class SecurityConfig {
 		JwtAuthenticationConverter jwtAuthenticationConverter = new JwtAuthenticationConverter();
 		jwtAuthenticationConverter.setJwtGrantedAuthoritiesConverter(jwt -> {
 			Collection<GrantedAuthority> authorities = jwtGrantedAuthoritiesConverter.convert(jwt);
-//			log.info("✅ Authorities in token: {}", authorities);
+			// log.info("✅ Authorities in token: {}", authorities);
 			return authorities;
 		});
 
 		return jwtAuthenticationConverter;
 	}
-	
-	 @Bean
-	    public CorsFilter corsFilter() {
-	        CorsConfiguration config = new CorsConfiguration();
-	        config.addAllowedOriginPattern("*"); // Cho phép tất cả origin
-	        config.addAllowedHeader("*");       // Cho phép tất cả header
-	        config.addAllowedMethod("*");       // Cho phép tất cả method
-	        config.setAllowCredentials(true);   // Cho phép gửi cookie hoặc thông tin xác thực
 
-	        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-	        source.registerCorsConfiguration("/**", config); // Áp dụng cho tất cả endpoint
-	        return new CorsFilter(source);
-	    }
+	// @Bean
+	// public CorsFilter corsFilter() {
+	// CorsConfiguration config = new CorsConfiguration();
+	// config.addAllowedOriginPattern("*"); // Cho phép tất cả origin
+	// config.addAllowedHeader("*"); // Cho phép tất cả header
+	// config.addAllowedMethod("*"); // Cho phép tất cả method
+	// config.setAllowCredentials(true); // Cho phép gửi cookie hoặc thông tin xác
+	// thực
 
-	    @Bean
-	    public UrlBasedCorsConfigurationSource corsConfigurationSource() {
-	        CorsConfiguration config = new CorsConfiguration();
-	        config.addAllowedOriginPattern("*"); // Cho phép tất cả origin
-	        config.addAllowedHeader("*");       // Cho phép tất cả header
-	        config.addAllowedMethod("*");       // Cho phép tất cả method
-	        config.setAllowCredentials(true);   // Cho phép gửi cookie hoặc thông tin xác thực
+	// UrlBasedCorsConfigurationSource source = new
+	// UrlBasedCorsConfigurationSource();
+	// source.registerCorsConfiguration("/**", config); // Áp dụng cho tất cả
+	// endpoint
+	// return new CorsFilter(source);
+	// }
 
-	        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-	        source.registerCorsConfiguration("/**", config); // Áp dụng cho tất cả endpoint
-	        return source;
-	    }
+	@Bean
+	public UrlBasedCorsConfigurationSource corsConfigurationSource() {
+		CorsConfiguration config = new CorsConfiguration();
+		config.addAllowedOriginPattern("*"); // Cho phép tất cả origin
+		config.addAllowedHeader("*"); // Cho phép tất cả header
+		config.addAllowedMethod("*"); // Cho phép tất cả method
+		config.setAllowCredentials(true); // Cho phép gửi cookie hoặc thông tin xác thực
+
+		UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+		source.registerCorsConfiguration("/**", config); // Áp dụng cho tất cả endpoint
+		return source;
+	}
 }
