@@ -23,6 +23,9 @@ import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import org.springframework.web.filter.CorsFilter;
 
 @Configuration
 @EnableWebSecurity
@@ -99,4 +102,30 @@ public class SecurityConfig {
 
 		return jwtAuthenticationConverter;
 	}
+	
+	 @Bean
+	    public CorsFilter corsFilter() {
+	        CorsConfiguration config = new CorsConfiguration();
+	        config.addAllowedOriginPattern("*"); // Cho phép tất cả origin
+	        config.addAllowedHeader("*");       // Cho phép tất cả header
+	        config.addAllowedMethod("*");       // Cho phép tất cả method
+	        config.setAllowCredentials(true);   // Cho phép gửi cookie hoặc thông tin xác thực
+
+	        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+	        source.registerCorsConfiguration("/**", config); // Áp dụng cho tất cả endpoint
+	        return new CorsFilter(source);
+	    }
+
+	    @Bean
+	    public UrlBasedCorsConfigurationSource corsConfigurationSource() {
+	        CorsConfiguration config = new CorsConfiguration();
+	        config.addAllowedOriginPattern("*"); // Cho phép tất cả origin
+	        config.addAllowedHeader("*");       // Cho phép tất cả header
+	        config.addAllowedMethod("*");       // Cho phép tất cả method
+	        config.setAllowCredentials(true);   // Cho phép gửi cookie hoặc thông tin xác thực
+
+	        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+	        source.registerCorsConfiguration("/**", config); // Áp dụng cho tất cả endpoint
+	        return source;
+	    }
 }
