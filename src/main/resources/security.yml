@@ -18,7 +18,8 @@ app:
       - GET:/author/getAll
       - GET:/author/**
       - GET:/comment/getAllByChapter/**  
-      - GET:/comment/getAllByNovel/**    
+      - GET:/comment/getAllByNovel/**   
+      - GET:/novel/**
     permission:
       PROJECT:
         - GET:/project/getAll
