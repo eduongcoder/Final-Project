@@ -11,7 +11,14 @@ app:
       - GET:/user/createUser
       - GET:/user/login
       - GET:/user/loginByEmail
-
+      - GET:/novel/getAll
+      - GET:/chapter/getAll/**
+      - GET:/chapter/increaseViewChapter/**
+      - GET:/category/getAll
+      - GET:/author/getAll
+      - GET:/author/**
+      - GET:/comment/getAllByChapter/**  
+      - GET:/comment/getAllByNovel/**    
     permission:
       PROJECT:
         - GET:/project/getAll
