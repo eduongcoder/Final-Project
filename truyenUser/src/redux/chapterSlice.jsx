@@ -1,90 +1,151 @@
 // src/redux/chapterSlice.js
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import axios from 'axios';
+// Bỏ axios gốc nếu không còn API nào dùng nó trong slice này
+// import axios from 'axios';
+import apiClient from '../services/api'; // Import apiClient cho tất cả các request
 
-// THAY THẾ BẰNG URL API THỰC TẾ CỦA BẠN
-const API_BASE_URL_CHAPTERS = "https://truongthaiduongphanthanhvu.onrender.com/chapter";
-const API_BASE_URL_NOVELS = "https://truongthaiduongphanthanhvu.onrender.com/novel"; // Hoặc nơi API lấy list chương của truyện
+// Không cần API_BASE_URL_CHAPTERS nữa vì apiClient đã có baseURL
+// const API_BASE_URL_CHAPTERS = "https://truongthaiduongphanthanhvu.onrender.com/chapter";
 
 // Action để lấy danh sách chương cho DetailPage
-// (Tên này khớp với DetailPage.jsx của bạn)
 export const getAllChapters = createAsyncThunk(
   'chapters/getAllChapters',
-  async (novelId, { rejectWithValue }) => {
+  async (novelId, { rejectWithValue, dispatch }) => {
     try {
-      // SỬA Ở ĐÂY: Sử dụng API_BASE_URL_CHAPTERS và path đúng
-      const response = await axios.get(`${API_BASE_URL_CHAPTERS}/getAll/${novelId}`);
-      const chapters = response.data.result || response.data || [];
-      return chapters.sort((a, b) => (a.chapterNumber || a.idChapter) - (b.chapterNumber || b.idChapter));
+      // Sử dụng apiClient, đường dẫn tương đối
+      const response = await apiClient.get(`/chapter/getAll/${novelId}`);
+      if (response.data && response.data.code === 1000 && Array.isArray(response.data.result)) {
+        const chapters = response.data.result;
+        return chapters.sort((a, b) => (a.chapterNumber || a.idChapter) - (b.chapterNumber || b.idChapter));
+      }
+      return rejectWithValue(response.data?.message || 'Failed to fetch chapters for detail page');
     } catch (error) {
+      if (error.response && error.response.status === 401) {
+        // import { logoutUser } from './userSlice'; // Cần import nếu muốn tự logout
+        // dispatch(logoutUser());
+        return rejectWithValue('Unauthorized. Please login again.');
+      }
       console.error(`Error fetching chapters for DetailPage (novelId: ${novelId}):`, error.response?.data || error.message);
-      return rejectWithValue(error.response?.data?.message || error.message || 'Failed to fetch chapters for detail page');
+      return rejectWithValue(error.response?.data?.message || error.message || 'Error fetching chapters for detail page');
     }
   }
 );
 
+// Action để lấy danh sách chương đã được map cho dropdown của ReadingPage
 export const getNovelChaptersList = createAsyncThunk(
   'chapters/getNovelChaptersList',
-  async (novelId, { rejectWithValue }) => {
+  async (novelId, { rejectWithValue, dispatch }) => {
     try {
-      // SỬA Ở ĐÂY: Sử dụng API_BASE_URL_CHAPTERS và path đúng
-      const response = await axios.get(`${API_BASE_URL_CHAPTERS}/getAll/${novelId}`);
-      const chapters = response.data.result || response.data || [];
-      const sortedChapters = chapters.sort((a, b) => (a.chapterNumber || a.idChapter) - (b.chapterNumber || b.idChapter));
-      // Map lại để chỉ lấy các trường cần thiết cho dropdown (tối ưu performance nếu API trả về nhiều dữ liệu)
-      return sortedChapters.map(chap => ({
-        idChapter: chap.idChapter,
-        chapterNumber: chap.chapterNumber || chap.idChapter, // Ưu tiên chapterNumber nếu có
-        titleChapter: chap.titleChapter
-      }));
+      const response = await apiClient.get(`/chapter/getAll/${novelId}`);
+      if (response.data && response.data.code === 1000 && Array.isArray(response.data.result)) {
+        const chapters = response.data.result;
+        const sortedChapters = chapters.sort((a, b) => (a.chapterNumber || a.idChapter) - (b.chapterNumber || b.idChapter));
+        return sortedChapters.map(chap => ({
+          idChapter: chap.idChapter,
+          chapterNumber: chap.chapterNumber || chap.idChapter,
+          titleChapter: chap.titleChapter
+        }));
+      }
+      return rejectWithValue(response.data?.message || 'Failed to fetch chapters list for reading dropdown');
     } catch (error) {
+      if (error.response && error.response.status === 401) {
+        return rejectWithValue('Unauthorized. Please login again.');
+      }
       console.error(`Error fetching chapter list for ReadingPage (novelId: ${novelId}):`, error.response?.data || error.message);
-      return rejectWithValue(error.response?.data?.message || error.message || 'Failed to fetch chapters list for reading dropdown');
+      return rejectWithValue(error.response?.data?.message || error.message || 'Error fetching chapters list for reading dropdown');
     }
   }
 );
 
 // Action để lấy nội dung chi tiết của một chương
-// (Tên này khớp với ReadingPage.jsx của bạn)
 export const getChapterContentById = createAsyncThunk(
-  'chapters/getChapterContentById', // Type prefix
-  async ({ novelId, chapterId }, { rejectWithValue }) => { // ReadingPage gửi object { novelId, chapterId }
+  'chapters/getChapterContentById',
+  async ({ novelId, chapterId }, { rejectWithValue, dispatch }) => { // novelId có thể không cần nếu API chỉ dùng chapterId
     try {
-      // Endpoint lấy nội dung chương từ API của bạn
-      const response = await axios.get(`${API_BASE_URL_CHAPTERS}/${chapterId}`);
-      return response.data.result || response.data;
+      // Endpoint lấy nội dung chương, giả sử là /chapter/{chapterId} hoặc /chapter/getContent/{chapterId}
+      // Nếu API chỉ cần chapterId:
+      const response = await apiClient.get(`/chapter/${chapterId}`);
+      // Nếu API cần cả novelId và chapterId (ví dụ: /chapter/getContent/{novelId}/{chapterId}):
+      // const response = await apiClient.get(`/chapter/getContent/${novelId}/${chapterId}`);
+
+      if (response.data && response.data.code === 1000 && response.data.result) {
+        // API tăng view có thể được gọi ở đây hoặc ở backend khi lấy nội dung chương
+        // Ví dụ, nếu cần gọi API tăng view riêng:
+        // try {
+        //   await apiClient.put(`/chapter/increaseViewChapter/${chapterId}`);
+        // } catch (viewError) {
+        //   console.warn("Failed to increase view for chapter:", chapterId, viewError);
+        // }
+        return response.data.result;
+      }
+      return rejectWithValue(response.data?.message || 'Failed to fetch chapter content');
     } catch (error) {
-      return rejectWithValue(error.response?.data?.message || error.message || 'Failed to fetch chapter content');
+      if (error.response && error.response.status === 401) {
+        return rejectWithValue('Unauthorized. Please login again.');
+      }
+      return rejectWithValue(error.response?.data?.message || error.message || 'Error fetching chapter content');
     }
   }
 );
 
-// Các actions CRUD khác (nếu bạn cần chúng, đảm bảo chúng cũng xử lý lỗi và cập nhật state đúng cách)
-// Ví dụ:
-// export const createChapter = createAsyncThunk('chapters/create', async (data, {rejectWithValue}) => { /* ... */ });
-// export const updateChapter = createAsyncThunk('chapters/update', async (data, {rejectWithValue}) => { /* ... */ });
-// export const deleteChapter = createAsyncThunk('chapters/delete', async (id, {rejectWithValue}) => { /* ... */ });
+// API tăng view cho chapter (nếu bạn muốn gọi riêng, và nó cần token)
+export const increaseChapterView = createAsyncThunk(
+  'chapters/increaseView',
+  async (idChapter, { rejectWithValue, dispatch }) => {
+    try {
+      // Endpoint của bạn là GET, nhưng thường tăng view là PUT hoặc POST.
+      // Nếu là GET và cần token:
+      // const response = await apiClient.get(`/chapter/increaseViewChapter/${idChapter}`);
+      // Nếu là PUT (phổ biến hơn):
+      const response = await apiClient.put(`/chapter/increaseViewChapter/${idChapter}`);
 
+      if (response.data && response.data.code === 1000) { // Hoặc code thành công tương ứng
+        return { idChapter, views: response.data.result?.views }; // Trả về thông tin nếu cần cập nhật UI
+      }
+      return rejectWithValue(response.data?.message || 'Failed to increase chapter view');
+    } catch (error) {
+      if (error.response && error.response.status === 401) {
+        return rejectWithValue('Unauthorized.');
+      }
+      return rejectWithValue(error.response?.data?.message || error.message || 'Error increasing chapter view');
+    }
+  }
+);
+
+
+// Các actions CRUD khác cho chapter (ví dụ: create, update, delete - đều cần token)
+export const createChapter = createAsyncThunk(
+  'chapters/createChapter',
+  async (chapterData, { rejectWithValue, dispatch }) => {
+    try {
+      const response = await apiClient.post('/chapter/create', chapterData);
+      if (response.data && response.data.code === 1000 && response.data.result) {
+        return response.data.result;
+      }
+      return rejectWithValue(response.data?.message || 'Failed to create chapter');
+    } catch (error) { /* ... xử lý lỗi 401 ... */ }
+  }
+);
+// ... (tương tự cho updateChapter, deleteChapter nếu có)
+
+
+const initialState = {
+  chapters: [],
+  chaptersForReadingPageDropdown: [],
+  currentChapterContent: null,
+  loading: false,
+  error: null,
+  loadingListForReading: false,
+  errorListForReading: null,
+  loadingContent: false,
+  errorContent: null,
+  // viewUpdateStatus: null, // Có thể thêm state cho việc cập nhật view
+};
 
 const chapterSlice = createSlice({
   name: 'chapters',
-  initialState: {
-    chapters: [], // Danh sách chương cho DetailPage (được sử dụng bởi `getAllChapters`)
-    chaptersForReadingPageDropdown: [], // Danh sách chương cho ReadingPage dropdown
-    currentChapterContent: null,    // Nội dung chương đang đọc
-
-    // Loading và Error states riêng biệt
-    loading: false, // Loading chung cho getAllChapters (DetailPage)
-    error: null,   // Error chung cho getAllChapters (DetailPage)
-
-    loadingListForReading: false, // Loading cho danh sách chương dropdown trên ReadingPage
-    errorListForReading: null,
-
-    loadingContent: false,     // Loading cho nội dung chương hiện tại
-    errorContent: null,
-  },
+  initialState,
   reducers: {
-    // Reducer để dọn dẹp state của ReadingPage khi cần
     clearChapterState: (state) => {
       state.chaptersForReadingPageDropdown = [];
       state.currentChapterContent = null;
@@ -92,54 +153,53 @@ const chapterSlice = createSlice({
       state.errorListForReading = null;
       state.loadingContent = false;
       state.errorContent = null;
+      // state.viewUpdateStatus = null;
     },
   },
   extraReducers: (builder) => {
     builder
-      // getAllChapters (cho DetailPage)
-      .addCase(getAllChapters.pending, (state) => {
-        state.loading = true;
-        state.error = null;
+      // getAllChapters
+      .addCase(getAllChapters.pending, (state) => { state.loading = true; state.error = null; })
+      .addCase(getAllChapters.fulfilled, (state, action) => { state.loading = false; state.chapters = action.payload; })
+      .addCase(getAllChapters.rejected, (state, action) => { state.loading = false; state.error = action.payload; })
+
+      // getNovelChaptersList
+      .addCase(getNovelChaptersList.pending, (state) => { state.loadingListForReading = true; state.errorListForReading = null; })
+      .addCase(getNovelChaptersList.fulfilled, (state, action) => { state.loadingListForReading = false; state.chaptersForReadingPageDropdown = action.payload; })
+      .addCase(getNovelChaptersList.rejected, (state, action) => { state.loadingListForReading = false; state.errorListForReading = action.payload; })
+
+      // getChapterContentById
+      .addCase(getChapterContentById.pending, (state) => { state.loadingContent = true; state.errorContent = null; })
+      .addCase(getChapterContentById.fulfilled, (state, action) => { state.loadingContent = false; state.currentChapterContent = action.payload; })
+      .addCase(getChapterContentById.rejected, (state, action) => { state.loadingContent = false; state.errorContent = action.payload; state.currentChapterContent = null; })
+
+      // increaseChapterView
+      .addCase(increaseChapterView.pending, (state) => {
+        // state.viewUpdateStatus = 'loading';
       })
-      .addCase(getAllChapters.fulfilled, (state, action) => {
-        state.loading = false;
-        state.chapters = action.payload; // Cập nhật state `chapters`
+      .addCase(increaseChapterView.fulfilled, (state, action) => {
+        // state.viewUpdateStatus = 'succeeded';
+        // Cập nhật view count trong currentChapterContent nếu cần và nếu API trả về
+        if (state.currentChapterContent && state.currentChapterContent.idChapter === action.payload.idChapter && action.payload.views) {
+          // state.currentChapterContent.views = action.payload.views; // Giả sử có trường views
+        }
       })
-      .addCase(getAllChapters.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload;
+      .addCase(increaseChapterView.rejected, (state, action) => {
+        // state.viewUpdateStatus = 'failed';
+        console.error("Failed to update chapter view:", action.payload);
       })
 
-      // getNovelChaptersList (cho ReadingPage dropdown)
-      .addCase(getNovelChaptersList.pending, (state) => {
-        state.loadingListForReading = true;
-        state.errorListForReading = null;
+      // createChapter (ví dụ)
+      .addCase(createChapter.pending, (state) => { state.loading = true; state.error = null; })
+      .addCase(createChapter.fulfilled, (state, action) => {
+        state.loading = false;
+        // Thêm chapter mới vào state.chapters hoặc state.chaptersForReadingPageDropdown nếu cần
+        if (action.payload && action.payload.idChapter) {
+          state.chapters.push(action.payload); // Hoặc unshift()
+          // Cân nhắc việc sắp xếp lại state.chapters
+        }
       })
-      .addCase(getNovelChaptersList.fulfilled, (state, action) => {
-        state.loadingListForReading = false;
-        state.chaptersForReadingPageDropdown = action.payload;
-      })
-      .addCase(getNovelChaptersList.rejected, (state, action) => {
-        state.loadingListForReading = false;
-        state.errorListForReading = action.payload;
-      })
-
-      // getChapterContentById (cho ReadingPage)
-      .addCase(getChapterContentById.pending, (state) => {
-        state.loadingContent = true;
-        state.errorContent = null;
-        // state.currentChapterContent = null; // Có thể xóa chương cũ ngay khi pending
-      })
-      .addCase(getChapterContentById.fulfilled, (state, action) => {
-        state.loadingContent = false;
-        state.currentChapterContent = action.payload;
-      })
-      .addCase(getChapterContentById.rejected, (state, action) => {
-        state.loadingContent = false;
-        state.errorContent = action.payload;
-        state.currentChapterContent = null; // Xóa nội dung nếu lỗi
-      });
-      // ... Thêm extraReducers cho các actions CRUD khác nếu có ...
+      .addCase(createChapter.rejected, (state, action) => { state.loading = false; state.error = action.payload; });
   },
 });
 
