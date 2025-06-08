@@ -1,76 +1,85 @@
 // Navbar.js
-import React, { useState, useEffect } from "react"; // Thêm useEffect
-import { Search, UserCircle2, Settings, BookOpen, LogOut, User } from "lucide-react"; // Thêm LogOut, User
+import React, { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom"; // THÊM Link VÀ useNavigate
+import { Search, UserCircle2, Settings, BookOpen, LogOut, User } from "lucide-react";
 import AuthModal from './AuthModal';
 import SettingsSidebar from './SettingsSidebar';
-import { auth } from '../firebase-config'; // Import auth từ Firebase config
-import { onAuthStateChanged, signOut } from "firebase/auth"; // Import các hàm cần thiết
+import { auth } from '../firebase-config';
+import { onAuthStateChanged, signOut } from "firebase/auth";
+
+// Hàm helper để tạo slug (ví dụ đơn giản)
+const createSlug = (text) => {
+  if (!text) return "";
+  return text
+    .toString()
+    .toLowerCase()
+    .normalize("NFD") // Chuẩn hóa Unicode (tách dấu)
+    .replace(/[\u0300-\u036f]/g, "") // Loại bỏ dấu
+    .replace(/\s+/g, '-') // Thay khoảng trắng bằng gạch ngang
+    .replace(/[^\w-]+/g, '') // Loại bỏ các ký tự không phải chữ, số, gạch ngang
+    .replace(/--+/g, '-') // Loại bỏ nhiều gạch ngang liên tiếp
+    .replace(/^-+/, '') // Loại bỏ gạch ngang ở đầu
+    .replace(/-+$/, ''); // Loại bỏ gạch ngang ở cuối
+};
+
 
 const menuItems = [
   {
     label: "Thể loại",
+    basePath: "/category", // Thêm basePath cho từng loại menu
     subItems: ["Tiên Hiệp", "Huyền Huyễn", "Khoa Huyễn", "Đô Thị", "Đồng Nhân", "Dã Sử", "Kỳ Ảo", "Truyện Teen"]
   },
   {
     label: "Bối cảnh thế giới",
+    basePath: "/world",
     subItems: ["Chư Thiên Vạn Giới", "Dị Tộc Luyện Tinh", "Tiên Lữ Kỳ Duyên", "Mạt Thế Nguy Cơ", "Hậu Môn Thế Gia"]
   },
   {
     label: "Lưu phái",
+    basePath: "/style",
     subItems: ["Sau Màn", "Mỹ Thực", "Ngọt Sủng", "Xuyên Không", "Tùy Thân", "Bàn Thờ", "Hệ Thống"]
   },
   {
     label: "Danh sách",
+    basePath: "/list",
     subItems: ["Truyện Dịch", "Truyện Convert", "Truyện Full", "Truyện Hot"]
   },
 ];
 
 const Navbar = () => {
   const [activeMenu, setActiveMenu] = useState(null);
-  const [isAuthModalOpen, setAuthModalOpen] = useState(false); // Đổi tên state cho AuthModal
+  const [isAuthModalOpen, setAuthModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearchActive, setIsSearchActive] = useState(false);
   const [isSettingsSidebarOpen, setSettingsSidebarOpen] = useState(false);
-  const [currentUser, setCurrentUser] = useState(null); // State cho người dùng hiện tại (từ Firebase)
+  const [currentUser, setCurrentUser] = useState(null);
+  const navigate = useNavigate(); // SỬ DỤNG useNavigate cho tìm kiếm
 
-  // Lắng nghe thay đổi trạng thái đăng nhập của Firebase
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) {
-        // Người dùng đã đăng nhập
-        setCurrentUser(user);
-        console.log("User is signed in:", user);
-      } else {
-        // Người dùng đã đăng xuất
-        setCurrentUser(null);
-        console.log("User is signed out");
-      }
+      setCurrentUser(user ? user : null);
     });
-
-    // Cleanup subscription khi component unmount
     return () => unsubscribe();
-  }, []); // Chạy một lần khi component mount
+  }, []);
 
   const handleSearch = () => {
-    if (searchQuery) {
-      alert(`Tìm kiếm truyện: ${searchQuery}`);
-      // Thêm logic tìm kiếm truyện ở đây
+    if (searchQuery.trim()) {
+      // Điều hướng đến trang kết quả tìm kiếm, ví dụ: /search?q=ten_truyen
+      navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
+      setSearchQuery(""); // Xóa nội dung tìm kiếm sau khi điều hướng
+      setIsSearchActive(false); // Có thể ẩn thanh tìm kiếm
     }
   };
 
   const handleAuthSuccess = (user) => {
-    // onAuthStateChanged đã xử lý việc cập nhật currentUser
-    // Bạn có thể làm thêm gì đó ở đây nếu cần, ví dụ: đóng modal
     console.log("Authentication successful in Navbar for user:", user.email);
-    setAuthModalOpen(false); // Đảm bảo modal đóng sau khi thành công
+    setAuthModalOpen(false);
   };
 
   const handleLogout = async () => {
     try {
       await signOut(auth);
-      // onAuthStateChanged sẽ tự động cập nhật currentUser thành null
-      console.log("User signed out successfully");
-      setSettingsSidebarOpen(false); // Đóng sidebar cài đặt nếu đang mở
+      setSettingsSidebarOpen(false);
     } catch (error) {
       console.error("Error signing out: ", error);
     }
@@ -79,12 +88,11 @@ const Navbar = () => {
   return (
     <div className="bg-blue-900 text-white">
       <div className="container mx-auto flex items-center justify-between py-4 px-6 relative">
-
-        {/* Logo */}
-        <div className="flex items-center">
+        {/* Logo - THÊM Link ĐỂ VỀ TRANG CHỦ */}
+        <Link to="/" className="flex items-center">
           <BookOpen className="text-2xl font-bold mr-2" size={28} />
           <span className="text-2xl font-bold">TRUYỆN CHỮ</span>
-        </div>
+        </Link>
 
         {/* Menu */}
         <div className="hidden md:flex space-x-8">
@@ -97,15 +105,16 @@ const Navbar = () => {
             >
               <button className="hover:text-gray-300">{menu.label}</button>
               {activeMenu === index && (
-                <div className="absolute top-full left-0 bg-blue-900 shadow-lg py-4 px-6 w-max z-20 grid grid-cols-2 gap-6">
+                <div className="absolute top-full left-0 bg-blue-900 shadow-lg py-4 px-6 w-max z-20 grid grid-cols-2 gap-x-8 gap-y-3"> {/* Điều chỉnh gap */}
                   {menu.subItems.map((subItem, subIndex) => (
-                    <a
+                    <Link // SỬ DỤNG Link THAY CHO a
                       key={subIndex}
-                      href="#"
+                      to={`${menu.basePath}/${createSlug(subItem)}`} // TẠO ĐƯỜNG DẪN ĐỘNG
                       className="whitespace-nowrap hover:underline text-white"
+                      onClick={() => setActiveMenu(null)} // Đóng menu khi click
                     >
                       {subItem}
-                    </a>
+                    </Link>
                   ))}
                 </div>
               )}
@@ -114,7 +123,8 @@ const Navbar = () => {
         </div>
 
         {/* Search Bar & Icons */}
-        <div className="flex space-x-3 sm:space-x-4 items-center">
+        {/* ... (Phần tìm kiếm và icon user/settings giữ nguyên cách xử lý sự kiện, chỉ thay đổi điều hướng tìm kiếm) ... */}
+         <div className="flex space-x-3 sm:space-x-4 items-center">
           {/* Tìm kiếm */}
           <div className="flex items-center w-32 sm:w-40 md:w-64 relative">
             {isSearchActive && (
@@ -129,26 +139,28 @@ const Navbar = () => {
             )}
             <Search
               className="text-lg sm:text-xl cursor-pointer hover:text-gray-300 absolute right-0 top-1/2 transform -translate-y-1/2 mr-2"
-              size={18} // Giảm size một chút cho search icon
-              onClick={() => setIsSearchActive(!isSearchActive)}
+              size={18}
+              onClick={() => {
+                if (isSearchActive && searchQuery.trim()) {
+                    handleSearch();
+                } else {
+                    setIsSearchActive(!isSearchActive);
+                }
+              }}
             />
           </div>
 
           {/* User & Settings Icons */}
           {currentUser ? (
-            // Nếu đã đăng nhập, hiển thị tên và nút Logout
             <div className="flex items-center space-x-2 sm:space-x-3">
               <span className="text-xs sm:text-sm hidden sm:block max-w-[100px] truncate" title={currentUser.displayName || currentUser.email}>
                 {currentUser.displayName || currentUser.email?.split('@')[0]}
               </span>
-              {/* Có thể thêm icon User nhỏ ở đây nếu muốn */}
-              {/* <User size={18} className="text-gray-300" /> */}
               <button onClick={handleLogout} title="Đăng xuất" className="hover:text-red-400 transition-colors">
                 <LogOut size={18} />
               </button>
             </div>
           ) : (
-            // Nếu chưa đăng nhập, hiển thị icon UserCircle để mở AuthModal
             <UserCircle2
               className="text-lg sm:text-xl cursor-pointer hover:text-gray-300"
               size={20}
@@ -165,20 +177,18 @@ const Navbar = () => {
         </div>
       </div>
 
-      {/* Auth Modal */}
       <AuthModal
         isOpen={isAuthModalOpen}
         onClose={() => setAuthModalOpen(false)}
-        onAuthSuccess={handleAuthSuccess} // Truyền hàm callback
+        onAuthSuccess={handleAuthSuccess}
       />
 
-      {/* Settings Sidebar */}
       <SettingsSidebar
         isOpen={isSettingsSidebarOpen}
         onClose={() => setSettingsSidebarOpen(false)}
-        userLoggedIn={!!currentUser} // Chuyển currentUser thành boolean
-        username={currentUser?.displayName || currentUser?.email} // Truyền tên người dùng (nếu có)
-        onLogoutClick={handleLogout} // Truyền hàm logout cho sidebar nếu cần
+        userLoggedIn={!!currentUser}
+        username={currentUser?.displayName || currentUser?.email}
+        onLogoutClick={handleLogout}
       />
     </div>
   );

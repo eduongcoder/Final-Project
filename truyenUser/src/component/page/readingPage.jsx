@@ -1,5 +1,3 @@
-// src/pages/ReadingPage.jsx
-
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
@@ -15,8 +13,7 @@ import { FaCog, FaListUl, FaAngleLeft, FaAngleRight } from 'react-icons/fa';
 import AudioPlayer from '../AudioPlayer';
 import ChapterComments from '../ChapterComments';
 
-
-// Component Dialog để hỏi người dùng
+// Component Dialog để hỏi người dùng (Không thay đổi)
 const ContinueReadingDialog = ({ onConfirm, onCancel }) => (
   <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
     <div className="bg-white rounded-lg shadow-xl p-6 w-11/12 max-w-sm text-center">
@@ -58,6 +55,7 @@ const ReadingPage = () => {
 
   const currentUser = useSelector((state) => state.user?.currentUser || null);
 
+  // States cho tùy chỉnh (không thay đổi)
   const [showChapterListDropdown, setShowChapterListDropdown] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [fontSize, setFontSize] = useState(() => parseInt(localStorage.getItem('readingFontSize') || '20', 10));
@@ -65,14 +63,17 @@ const ReadingPage = () => {
   const [fontFamily, setFontFamily] = useState(() => localStorage.getItem('readingFontFamily') || 'Tahoma');
   const [theme, setTheme] = useState(() => localStorage.getItem('readingTheme') || 'xam-nhat');
 
+  // States cho logic "Đọc tiếp"
   const [showContinueDialog, setShowContinueDialog] = useState(false);
   const [savedScrollPosition, setSavedScrollPosition] = useState(null);
 
   const contentRef = useRef(null);
   const [showAudioPlayer, setShowAudioPlayer] = useState(true);
 
+  // Helper function để tạo key duy nhất cho mỗi chương
   const getPositionKey = () => `reading_position_${novelId}_${chapterId}`;
 
+  // useEffect cho Tùy chỉnh (không thay đổi)
   useEffect(() => {
     localStorage.setItem('readingFontSize', fontSize.toString());
     localStorage.setItem('readingLineHeight', lineHeight.toString());
@@ -80,6 +81,7 @@ const ReadingPage = () => {
     localStorage.setItem('readingTheme', theme);
   }, [fontSize, lineHeight, fontFamily, theme]);
 
+  // useEffect để tải dữ liệu (không thay đổi)
   useEffect(() => {
     if (novelId) {
       dispatch(getNovelById(novelId));
@@ -90,20 +92,21 @@ const ReadingPage = () => {
     };
   }, [dispatch, novelId]);
 
+  // useEffect khi chuyển chương
   useEffect(() => {
     if (novelId && chapterId) {
       dispatch(getChapterContentById({ novelId, chapterId }));
       setShowChapterListDropdown(false);
       setShowSettings(false);
-      // Khi chuyển chương mới, cuộn container chứa nội dung lên đầu, không phải cả window
       if (contentRef.current) {
         contentRef.current.scrollTop = 0;
       }
+      // Lưu chapter cuối cùng đã đọc của truyện này
       localStorage.setItem(`lastRead_${novelId}`, chapterId);
     }
   }, [dispatch, novelId, chapterId]);
 
-  // ĐÃ SỬA: Dùng Debounce để lưu vị trí cuộn một cách đáng tin cậy
+  // *** BƯỚC 1: LƯU VỊ TRÍ CUỘN VỚI DEBOUNCE ***
   useEffect(() => {
     const scrollContainer = contentRef.current;
     if (!scrollContainer) return;
@@ -112,57 +115,67 @@ const ReadingPage = () => {
 
     const handleScroll = () => {
       clearTimeout(debounceTimer);
+      // Chỉ thực hiện lưu sau khi người dùng ngừng cuộn 1 giây
       debounceTimer = setTimeout(() => {
-        if (scrollContainer.scrollTop > 200) {
+        // Chỉ lưu nếu đã cuộn xuống một khoảng đáng kể
+        if (scrollContainer.scrollTop > 100) { 
           const key = getPositionKey();
           const position = scrollContainer.scrollTop;
           localStorage.setItem(key, position.toString());
-          console.log(`(Debounced) Đã lưu vị trí: ${position} cho key: ${key}`);
         }
-      }, 1000); // Lưu sau 1 giây người dùng ngừng cuộn
+      }, 1000); 
     };
 
     scrollContainer.addEventListener('scroll', handleScroll);
 
+    // Dọn dẹp listener và timer khi component unmount hoặc chapterId thay đổi
     return () => {
       scrollContainer.removeEventListener('scroll', handleScroll);
       clearTimeout(debounceTimer);
     };
-  }, [novelId, chapterId, loadingContent]); // Phụ thuộc vào loadingContent để đảm bảo ref đã sẵn sàng
+    // Phụ thuộc vào chapterId để gắn lại listener cho chương mới
+  }, [novelId, chapterId]);
 
 
-  // GIỮ NGUYÊN: useEffect để KIỂM TRA và HIỂN THỊ dialog khi tải trang
+  // *** BƯỚC 2: KIỂM TRA VỊ TRÍ ĐÃ LƯU KHI TẢI TRANG ***
   useEffect(() => {
+    // Chỉ kiểm tra sau khi nội dung chương đã được tải xong
     if (!loadingContent && currentChapterContent) {
       const key = getPositionKey();
       const position = localStorage.getItem(key);
 
       if (position) {
         const scrollPos = parseInt(position, 10);
+        // Nếu có vị trí hợp lệ, hiển thị dialog
         if (scrollPos > 0) {
           setSavedScrollPosition(scrollPos);
           setShowContinueDialog(true);
         }
       }
     }
-  }, [loadingContent, currentChapterContent]);
+  }, [loadingContent, currentChapterContent, novelId, chapterId]); // Chạy lại khi nội dung chương thay đổi
 
-  // GIỮ NGUYÊN: Các hàm xử lý sự kiện của dialog
+  
+  // *** BƯỚC 3: CÁC HÀM XỬ LÝ DIALOG ***
   const handleConfirmContinue = () => {
     if (contentRef.current && savedScrollPosition) {
+      // Dùng setTimeout nhỏ để đảm bảo trình duyệt đã render xong trước khi cuộn
       setTimeout(() => {
         contentRef.current.scrollTop = savedScrollPosition;
       }, 100);
     }
     setShowContinueDialog(false);
-    localStorage.removeItem(getPositionKey());
+    // Quan trọng: Xóa key sau khi đã sử dụng để dialog không hiện lại
+    localStorage.removeItem(getPositionKey()); 
   };
 
   const handleCancelContinue = () => {
     setShowContinueDialog(false);
+    // Quan trọng: Xóa key để người dùng có thể bắt đầu từ đầu
     localStorage.removeItem(getPositionKey());
   };
 
+  // useEffect để tạo lịch sử đọc (không thay đổi)
   useEffect(() => {
     if (
       currentUser &&
@@ -179,16 +192,12 @@ const ReadingPage = () => {
       };
       dispatch(createHistory(historyPayload));
     }
-  }, [
-    currentUser,
-    currentChapterContent,
-    loadingContent,
-    errorContent,
-    novelId,
-    chapterId,
-    dispatch,
-  ]);
+  }, [currentUser, currentChapterContent, loadingContent, errorContent, novelId, dispatch]);
 
+  // Các logic khác (useMemo, handlers, render) giữ nguyên như code của bạn
+  // ...
+  // (Phần code JSX dài ở dưới giữ nguyên, không cần thay đổi)
+  // ...
   const { currentChapterIndex, prevChapterDetails, nextChapterDetails } = useMemo(() => {
     if (!chaptersForReadingPageDropdown || chaptersForReadingPageDropdown.length === 0) {
       return { currentChapterIndex: -1, prevChapterDetails: null, nextChapterDetails: null };
