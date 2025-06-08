@@ -1,33 +1,62 @@
-// src/redux/novelSlice.js
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import axios from 'axios';
+// import axios from 'axios'; // Không dùng axios gốc nữa
+import apiClient from '../services/api'; // BƯỚC 1: Import apiClient
 
 // Các API requests cho Novel
-const apiBase = "https://truongthaiduongphanthanhvu.onrender.com/novel";
+// baseURL đã được định nghĩa trong apiClient, nên ta chỉ cần đường dẫn tương đối
+const apiPath = "/novel";
 
-export const getAllNovels = createAsyncThunk('novels/getAll', async () => {
-  const response = await axios.get(`${apiBase}/getAll`);
-  return response.data.result;
+// Giả sử API này không cần token (ai cũng xem được)
+export const getAllNovels = createAsyncThunk('novels/getAll', async (_, { rejectWithValue }) => {
+  try {
+    // Nếu không cần token, có thể dùng apiClient hoặc axios gốc đều được
+    const response = await apiClient.get(`${apiPath}/getAll`);
+    return response.data.result;
+  } catch (error) {
+    return rejectWithValue(error.response.data);
+  }
 });
 
-export const getNovelById = createAsyncThunk('novels/getById', async (id) => {
-  const response = await axios.get(`${apiBase}/${id}`);
-  return response.data;
+// Giả sử các API dưới đây ĐỀU CẦN TOKEN để xác thực admin
+export const getNovelById = createAsyncThunk('novels/getById', async (id, { rejectWithValue }) => {
+  try {
+    const response = await apiClient.get(`${apiPath}/${id}`);
+    // apiClient sẽ tự động đính kèm token
+    return response.data; // Giả sử API này trả về toàn bộ response.data
+  } catch (error) {
+    return rejectWithValue(error.response.data);
+  }
 });
 
-export const createNovel = createAsyncThunk('novels/create', async (data) => {
-  const response = await axios.post(`${apiBase}/create`, data);  
-  return response.data.result;
+export const createNovel = createAsyncThunk('novels/create', async (novelData, { rejectWithValue }) => {
+  try {
+    const response = await apiClient.post(`${apiPath}/create`, novelData);
+    return response.data.result;
+  } catch (error) {
+    return rejectWithValue(error.response.data);
+  }
 });
 
-export const updateNovel = createAsyncThunk('novels/update', async (data) => {
-  const response = await axios.put(`${apiBase}/update`, data);
-  return response.data.result;
+export const updateNovel = createAsyncThunk('novels/update', async (novelData, { rejectWithValue }) => {
+  try {
+    // API của bạn có thể dùng /update/{id} hoặc nhận id trong body
+    // Ở đây giả định nhận id trong body của novelData
+    const response = await apiClient.put(`${apiPath}/update`, novelData);
+    return response.data.result;
+  } catch (error) {
+    return rejectWithValue(error.response.data);
+  }
 });
 
-export const deleteNovel = createAsyncThunk('novels/delete', async (id) => {
-  const response = await axios.delete(`${apiBase}/${id}`);
-  return response.data.result;
+export const deleteNovel = createAsyncThunk('novels/delete', async (id, { rejectWithValue }) => {
+  try {
+    const response = await apiClient.delete(`${apiPath}/${id}`);
+    // Backend nên trả về id của novel đã xóa để dễ xử lý ở frontend
+    // Nếu backend không trả về gì, ta có thể trả về id đã gửi đi
+    return id; // Trả về id để reducer có thể lọc ra
+  } catch (error) {
+    return rejectWithValue(error.response.data);
+  }
 });
 
 const novelSlice = createSlice({
@@ -40,43 +69,28 @@ const novelSlice = createSlice({
   reducers: {},
   extraReducers: (builder) => {
     builder
-      .addCase(getAllNovels.pending, (state) => {
-        state.loading = true;
-      })
+      // GET ALL
+      .addCase(getAllNovels.pending, (state) => { state.loading = true; state.error = null; })
       .addCase(getAllNovels.fulfilled, (state, action) => {
         state.loading = false;
         state.novels = action.payload;
       })
       .addCase(getAllNovels.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.error.message;
+        state.error = action.payload?.message || action.error.message;
       })
-      .addCase(getNovelById.pending, (state) => {
-        state.loading = true;
-      })
-      .addCase(getNovelById.fulfilled, (state, action) => {
-        state.loading = false;
-        state.novels = [action.payload];
-      })
-      .addCase(getNovelById.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.error.message;
-      })
-      .addCase(createNovel.pending, (state) => {
-        state.loading = true;
-      })
+      // CREATE
+      .addCase(createNovel.pending, (state) => { state.loading = true; state.error = null; })
       .addCase(createNovel.fulfilled, (state, action) => {
         state.loading = false;
-        console.log("Novel created successfully:", action.payload);
         state.novels.push(action.payload);
       })
       .addCase(createNovel.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.error.message;
+        state.error = action.payload?.message || action.error.message;
       })
-      .addCase(updateNovel.pending, (state) => {
-        state.loading = true;
-      })
+      // UPDATE
+      .addCase(updateNovel.pending, (state) => { state.loading = true; state.error = null; })
       .addCase(updateNovel.fulfilled, (state, action) => {
         state.loading = false;
         const index = state.novels.findIndex((novel) => novel.idNovel === action.payload.idNovel);
@@ -86,19 +100,20 @@ const novelSlice = createSlice({
       })
       .addCase(updateNovel.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.error.message;
+        state.error = action.payload?.message || action.error.message;
       })
-      .addCase(deleteNovel.pending, (state) => {
-        state.loading = true;
-      })
+      // DELETE
+      .addCase(deleteNovel.pending, (state) => { state.loading = true; state.error = null; })
       .addCase(deleteNovel.fulfilled, (state, action) => {
         state.loading = false;
+        // action.payload bây giờ là id đã xóa
         state.novels = state.novels.filter((novel) => novel.idNovel !== action.payload);
       })
       .addCase(deleteNovel.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.error.message;
+        state.error = action.payload?.message || action.error.message;
       });
+      // Bạn có thể thêm các case khác (getById) nếu cần xử lý state riêng
   }
 });
 
