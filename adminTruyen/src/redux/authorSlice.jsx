@@ -1,30 +1,74 @@
-// src/redux/authorSlice.js
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import axios from 'axios';
+// import axios from 'axios'; // Bỏ axios gốc
+import apiClient from '../services/api'; // Dùng apiClient
 
-const apiBase = "https://truongthaiduongphanthanhvu.onrender.com/author";
+const apiPath = "/author"; // Đường dẫn tương đối
 
-// API requests cho Author
-export const getAllAuthors = createAsyncThunk('authors/getAll', async () => {
-  const response = await axios.get(`${apiBase}/getAll`);
-  return response.data.result; 
-});
+// --- ASYNC THUNKS ---
 
-export const createAuthor = createAsyncThunk('authors/create', async (data) => {
-  const response = await axios.post(`${apiBase}/create`, data, { headers: { 'Content-Type': 'multipart/form-data' } });
-  return response.data.result;
-});
+// Lấy tất cả tác giả (public, không cần token)
+export const getAllAuthors = createAsyncThunk(
+  'authors/getAll',
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await apiClient.get(`${apiPath}/getAll`);
+      return response.data.result;
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.message || error.message);
+    }
+  }
+);
 
-export const updateAuthor = createAsyncThunk('authors/update', async (data) => {
-  const response = await axios.put(`${apiBase}/update`, data, { headers: { 'Content-Type': 'multipart/form-data' } });
-  return response.data.result;
-});
+// Tạo tác giả mới (CẦN TOKEN, dùng FormData)
+export const createAuthor = createAsyncThunk(
+  'authors/create',
+  async (authorFormData, { rejectWithValue }) => {
+    try {
+      // Giả định authorFormData đã là một object FormData được tạo từ component
+      // Ví dụ:
+      // const formData = new FormData();
+      // formData.append('nameAuthor', 'Tên tác giả');
+      // formData.append('image', fileObject);
+      // dispatch(createAuthor(formData));
 
-export const deleteAuthor = createAsyncThunk('authors/delete', async (id) => {
-  const response = await axios.delete(`${apiBase}/${id}`);
-  console.log(response.data.result);
-  return response.data.result;
-});
+      const response = await apiClient.post(`${apiPath}/create`, authorFormData);
+      return response.data.result;
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.message || error.message);
+    }
+  }
+);
+
+// Cập nhật tác giả (CẦN TOKEN, dùng FormData)
+export const updateAuthor = createAsyncThunk(
+  'authors/update',
+  async (authorFormData, { rejectWithValue }) => {
+    try {
+      // Tương tự như create, giả định authorFormData là một object FormData
+      const response = await apiClient.put(`${apiPath}/update`, authorFormData);
+      return response.data.result;
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.message || error.message);
+    }
+  }
+);
+
+// Xóa tác giả (CẦN TOKEN)
+export const deleteAuthor = createAsyncThunk(
+  'authors/delete',
+  async (idAuthor, { rejectWithValue }) => {
+    try {
+      await apiClient.delete(`${apiPath}/${idAuthor}`);
+      // Trả về id đã xóa để reducer xử lý
+      return idAuthor;
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.message || error.message);
+    }
+  }
+);
+
+
+// --- SLICE DEFINITION ---
 
 const authorSlice = createSlice({
   name: 'authors',
@@ -35,34 +79,35 @@ const authorSlice = createSlice({
   },
   reducers: {},
   extraReducers: (builder) => {
+    // Hàm chung để xử lý pending và rejected
+    const handlePending = (state) => {
+      state.loading = true;
+      state.error = null;
+    };
+    const handleRejected = (state, action) => {
+      state.loading = false;
+      state.error = action.payload;
+    };
+
     builder
-      .addCase(getAllAuthors.pending, (state) => {
-        state.loading = true;
-      })
+      // GET ALL
+      .addCase(getAllAuthors.pending, handlePending)
       .addCase(getAllAuthors.fulfilled, (state, action) => {
         state.loading = false;
-        state.authors = action.payload;
+        state.authors = action.payload || [];
       })
-      .addCase(getAllAuthors.rejected, (state, action) => {
-        state.loading = false;
-        //state.authors = Array.isArray(action.payload) ? action.payload : []; // Kiểm tra dữ liệu trả về
+      .addCase(getAllAuthors.rejected, handleRejected)
 
-        state.error = action.error.message;
-      })
-      .addCase(createAuthor.pending, (state) => {
-        state.loading = true;
-      })
+      // CREATE
+      .addCase(createAuthor.pending, handlePending)
       .addCase(createAuthor.fulfilled, (state, action) => {
         state.loading = false;
-        state.authors.push(action.payload); // thêm author mới vào mảng cũ
+        state.authors.push(action.payload);
       })
-      .addCase(createAuthor.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.error.message;
-      })
-      .addCase(updateAuthor.pending, (state) => {
-        state.loading = true;
-      })
+      .addCase(createAuthor.rejected, handleRejected)
+
+      // UPDATE
+      .addCase(updateAuthor.pending, handlePending)
       .addCase(updateAuthor.fulfilled, (state, action) => {
         state.loading = false;
         const index = state.authors.findIndex((author) => author.idAuthor === action.payload.idAuthor);
@@ -70,23 +115,16 @@ const authorSlice = createSlice({
           state.authors[index] = action.payload;
         }
       })
-      .addCase(updateAuthor.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.error.message;
-      })
-      .addCase(deleteAuthor.pending, (state) => {
-        state.loading = true;
-      })
+      .addCase(updateAuthor.rejected, handleRejected)
+
+      // DELETE
+      .addCase(deleteAuthor.pending, handlePending)
       .addCase(deleteAuthor.fulfilled, (state, action) => {
         state.loading = false;
-        console.log("ID cần xóa:", action.payload);
-        console.log("Tất cả ID hiện tại:", state.authors.map(a => a.idAuthor));
+        // action.payload bây giờ là idAuthor đã xóa
         state.authors = state.authors.filter((author) => author.idAuthor !== action.payload);
       })
-      .addCase(deleteAuthor.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.error.message;
-      });
+      .addCase(deleteAuthor.rejected, handleRejected);
   }
 });
 
