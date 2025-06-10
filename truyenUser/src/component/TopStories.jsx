@@ -1,33 +1,59 @@
-// src/components/TopStories.jsx (Giả sử vị trí file)
-import React, { useMemo } from "react"; // Bỏ useEffect, useDispatch
-import { useSelector } from "react-redux";
+// src/components/TopStories.jsx
+import React, { useEffect, useMemo } from "react"; // Thêm lại useEffect nếu TopStories tự fetch (không khuyến khích)
+import { useSelector, useDispatch } from "react-redux"; // Thêm lại useDispatch nếu TopStories tự fetch
 import { Link } from "react-router-dom";
 import { User, Book } from "lucide-react";
 
+// Import actions từ authorSlice và categorySlice
+// Nếu TopStories tự fetch (KHÔNG KHUYẾN KHÍCH cho component con tái sử dụng):
+// import { getAllAuthors } from "../redux/authorSlice";
+// import { getAllCategories } from "../redux/categorySlice";
+
 const TopStories = () => {
-  // Chỉ lấy novels từ store, không dispatch lại
-  const { novels, loading, error } = useSelector((state) => state.novels);
+  const dispatch = useDispatch(); // Cần dispatch nếu fetch ở đây
 
-  // Không còn:
-  // const dispatch = useDispatch();
+  // Lấy dữ liệu từ store
+  const { novels, loading: novelsLoading, error: novelsError } = useSelector((state) => state.novels);
+  const { authors, loading: authorsLoading, error: authorsError } = useSelector((state) => state.authors);
+  const { categories, loading: categoriesLoading, error: categoriesError } = useSelector((state) => state.categories);
+
+  // KHUYẾN KHÍCH: Dispatch action lấy authors và categories ở component cha (vd: HomePage)
+  // Nếu BẮT BUỘC phải fetch ở đây (ít lý tưởng hơn):
   // useEffect(() => {
-  //   dispatch(getAllNovels());
-  // }, [dispatch]);
+  //   if (authors.length === 0 && !authorsLoading) { // Chỉ fetch nếu chưa có và không đang fetch
+  //     dispatch(getAllAuthors());
+  //   }
+  //   if (categories.length === 0 && !categoriesLoading) { // Chỉ fetch nếu chưa có và không đang fetch
+  //     dispatch(getAllCategories());
+  //   }
+  // }, [dispatch, authors.length, categories.length, authorsLoading, categoriesLoading]);
 
-  const renderError = (err) => (typeof err === 'string' ? err : err?.message || 'Đã có lỗi xảy ra.');
+
+  const renderError = (err, type) => (typeof err === 'string' ? err : err?.message || `Đã có lỗi xảy ra khi tải ${type}.`);
 
   const sectionsData = useMemo(() => {
-    if (!novels || novels.length === 0) return [];
+    if (!novels || novels.length === 0 || !authors || !categories) return [];
+
+    // Tạo map để tra cứu nhanh tên tác giả và thể loại
+    const authorMap = new Map(authors.map(author => [author.idAuthor, author.nameAuthor]));
+    const categoryMap = new Map(categories.map(category => [category.idCategory, category.nameCategory]));
 
     const getAuthorName = (novel) => {
-        // API getAllNovels trả về authors: null.
-        // Nếu bạn có 1 trường tên tác giả trực tiếp trong novel object (vd: novel.authorName) thì dùng nó
-        return "N/A";
+      // Giả sử novel object có trường idAuthor
+      return authorMap.get(novel.idAuthor) || "N/A";
     };
+
     const getGenre = (novel) => {
-        // API getAllNovels không trả về categories chi tiết.
-        // Nếu có 1 trường thể loại chính (vd: novel.mainCategory) thì dùng nó
-        return "N/A";
+      // Giả sử novel object có một mảng các category IDs hoặc một idCategory chính
+      // Ví dụ 1: Nếu novel.categories là một mảng các ID [{ idCategory: '1' }, { idCategory: '2' }]
+      // Hoặc novel.listCategory là mảng các object category đầy đủ
+      if (novel.listCategory && novel.listCategory.length > 0) {
+        // Lấy tên của category đầu tiên trong danh sách
+        return novel.listCategory[0].nameCategory || "N/A";
+      }
+      // Ví dụ 2: Nếu novel có một trường idCategory duy nhất (ví dụ: novel.idCategory)
+      // return categoryMap.get(novel.idCategory) || "N/A";
+      return "N/A"; // Fallback nếu không có category
     };
 
     const sortedByViews = [...novels].sort((a, b) => (b.viewNovel || 0) - (a.viewNovel || 0));
@@ -35,6 +61,7 @@ const TopStories = () => {
     const recommended = [...novels]
         .filter(n => !sortedByViews.slice(0,1).map(s => s.idNovel).includes(n.idNovel))
         .sort((a,b) => (parseFloat(b.rating) || 0) - (parseFloat(a.rating) || 0));
+
 
     return [
       {
@@ -71,20 +98,25 @@ const TopStories = () => {
         list: recommended.slice(1, 10).map(n => ({id: n.idNovel, name: n.nameNovel})),
       },
     ].filter(section => section.topStory && section.topStory.id);
-  }, [novels]);
+  }, [novels, authors, categories]);
 
-  // Hiển thị loading/error chỉ khi novels thực sự chưa có và đang fetch từ Home
-  if (loading && novels.length === 0) return (
-    <div className="container mx-auto p-4 sm:p-6">
-        <p className="text-center text-gray-500 py-5">Đang tải danh sách truyện...</p>
-    </div>
-  );
+  // Xử lý loading và error cho cả 3 loại dữ liệu
+  if ((novelsLoading && novels.length === 0) || (authorsLoading && authors.length === 0) || (categoriesLoading && categories.length === 0)) {
+    return (
+      <div className="container mx-auto p-4 sm:p-6">
+          <p className="text-center text-gray-500 py-5">Đang tải dữ liệu...</p>
+      </div>
+    );
+  }
 
-  if (error && novels.length === 0) return (
-    <div className="container mx-auto p-4 sm:p-6">
-        <p className="text-center text-red-500 py-5">Lỗi tải danh sách truyện: {renderError(error)}</p>
-    </div>
-  );
+  if (novelsError && novels.length === 0) {
+    return (
+      <div className="container mx-auto p-4 sm:p-6">
+          <p className="text-center text-red-500 py-5">Lỗi tải danh sách truyện: {renderError(novelsError, 'truyện')}</p>
+      </div>
+    );
+  }
+  // Bạn có thể thêm xử lý lỗi cho authorsError và categoriesError nếu cần hiển thị thông báo cụ thể
 
   if (!sectionsData || sectionsData.length === 0) return (
     <div className="container mx-auto p-4 sm:p-6">
@@ -128,7 +160,7 @@ const TopStories = () => {
             )}
             <ul className="space-y-1.5 text-sm text-gray-700 flex-grow">
               {section.list.map((item, itemIdx) => (
-                <li key={item.id || itemIdx} className="flex items-center"> {/* Dùng item.id làm key nếu có */}
+                <li key={item.id || itemIdx} className="flex items-center">
                   <span
                     className={`w-5 h-5 flex items-center justify-center rounded-full text-xs font-semibold mr-2 flex-shrink-0
                       ${itemIdx === 0 ? "bg-yellow-400 text-white" :

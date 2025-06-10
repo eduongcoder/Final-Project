@@ -69,6 +69,7 @@ const ReadingPage = () => {
 
   const contentRef = useRef(null);
   const [showAudioPlayer, setShowAudioPlayer] = useState(true);
+  const audioTestUrl = "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3";
 
   // Helper function để tạo key duy nhất cho mỗi chương
   const getPositionKey = () => `reading_position_${novelId}_${chapterId}`;
@@ -380,9 +381,8 @@ const ReadingPage = () => {
         )}
       </div>
 
-      <footer className={`${theme === 'den' ? 'bg-gray-800' : 'bg-white'} shadow-md py-4 sticky bottom-0 z-20`}>
+      {/* <footer className={`${theme === 'den' ? 'bg-gray-800' : 'bg-white'} shadow-md py-4 sticky bottom-0 z-20`}>
          <div className="container mx-auto px-4 flex justify-center items-center space-x-1 sm:space-x-2">
-          {/* ... (Các nút điều hướng footer) ... */}
           <button
             onClick={handlePrevChapter}
             disabled={isFirstChapter || !prevChapterDetails}
@@ -404,11 +404,13 @@ const ReadingPage = () => {
             Sau <FaAngleRight className="inline ml-1" />
           </button>
         </div>
-      </footer>
+      </footer> */}
 
-      {showAudioPlayer && currentChapterContent?.audioUrl && (
+      {showAudioPlayer && audioTestUrl && (
         <AudioPlayer
-          audioSrc={currentChapterContent.audioUrl}
+          // audioSrc={currentChapterContent.audioUrl}
+          audioSrc={audioTestUrl} // Sử dụng URL test
+
           onPrevChapter={handlePrevChapter}
           onNextChapter={handleNextChapter}
           isFirstChapter={isFirstChapter}

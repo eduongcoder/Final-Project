@@ -207,7 +207,7 @@ const DetailPage = () => {
                   </div>
                 </div>
                 {chaptersLoading && !currentChaptersForTabDisplay.length && <p className="text-center py-4">Đang tải danh sách chương...</p>}
-                {chaptersError && !currentChaptersForTabDisplay.length && <p className="text-red-500 text-center py-4">Lỗi tải chương: {renderErrorText(chaptersError)}</p>}
+                {chaptersError && !currentChaptersForTabDisplay.length && <p className="text-red-500 text-center py-4">Lỗi tải chương. Phiên đăng nhập của bạn có thể đã hết hạn. Vui lòng đăng nhập lại để tiếp tục.</p>}
                 {!chaptersLoading && !chaptersError && currentChaptersForTabDisplay.length > 0 && (
                   <ChapterListDisplay
                     chapters={currentChaptersForTabDisplay}
