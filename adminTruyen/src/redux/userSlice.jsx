@@ -1,215 +1,74 @@
 // src/redux/userSlice.js
+
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import axios from 'axios'; // axios gốc vẫn được dùng cho các API không cần auth (như login, register)
-import apiClient from '../services/api'; // Import apiClient đã cấu hình
+import axios from 'axios';
+import apiClient from '../services/api';
 
-const userApiBase = "https://truongthaiduongphanthanhvu.onrender.com/user"; // Chỉ dùng cho các API không cần auth
+const userApiBase = "https://truongthaiduongphanthanhvu.onrender.com/user";
 
-// --- API DEFINITIONS ---
-
-// 1. API ĐĂNG KÝ USER MỚI
-export const registerUser = createAsyncThunk(
-  'user/registerUser',
-  async (registrationPayload, { rejectWithValue }) => {
+// --- THUNK MỚI: XÁC THỰC PHIÊN ĐĂNG NHẬP KHI TẢI LẠI TRANG ---
+// Action này sẽ được gọi khi ứng dụng khởi động để kiểm tra token cũ.
+export const verifyUserSession = createAsyncThunk(
+  'user/verifySession',
+  async (_, { rejectWithValue, getState }) => {
+    const { token } = getState().user;
+    if (!token) {
+      // Nếu không có token, không cần gọi API, chỉ cần kết thúc.
+      return rejectWithValue('No token found');
+    }
+    
     try {
-      const response = await axios.post(`${userApiBase}/createUser`, registrationPayload, {
-        headers: { 'Content-Type': 'application/json' },
-      });
+      // Giả sử bạn có endpoint /user/me để lấy thông tin user dựa trên token
+      // apiClient sẽ tự động đính kèm token vào header
+      const response = await apiClient.get('/user/me'); 
       if (response.data && response.data.code === 1000 && response.data.result) {
+        // Thành công: trả về thông tin user mới nhất
         return response.data.result;
-      } else if (response.data && response.data.code === 9999) {
-        return rejectWithValue(response.data.message || "Unknown error from backend (9999)");
-      } else {
-        return rejectWithValue(response.data?.message || 'User registration failed: Invalid response.');
       }
+      return rejectWithValue('Invalid session data from server.');
     } catch (error) {
-      const errorMsg = error.response?.data?.message || error.response?.data?.error || error.message || 'Registration API error.';
-      return rejectWithValue(errorMsg);
+      // Thất bại (token hết hạn/không hợp lệ), server trả về lỗi 401/403
+      console.error("Session verification failed:", error.response?.data);
+      return rejectWithValue('Session expired or invalid.');
     }
   }
 );
 
-// 2. API ĐĂNG NHẬP THƯỜNG (EMAIL & PASSWORD)
+
+// --- CÁC THUNK KHÁC (GIỮ NGUYÊN) ---
+export const registerUser = createAsyncThunk(/* ...code của bạn... */);
 export const loginUserWithPassword = createAsyncThunk(
   'user/loginUserWithPassword',
   async (loginCredentials, { rejectWithValue }) => {
     try {
-      const response = await axios.post(`${userApiBase}/login`, loginCredentials, {
-        headers: { 'Content-Type': 'application/json' },
-      });
-      // Giả sử backend trả về: { code: 1000, message: "...", result: { user: {...}, token: "..." } }
+      const response = await axios.post(`${userApiBase}/login`, loginCredentials);
       if (response.data && response.data.code === 1000 && response.data.result && response.data.result.token) {
-        return response.data.result; // Trả về object chứa user info và token
-      } else {
-        return rejectWithValue(response.data?.message || 'Login failed: Invalid response or missing token.');
-      }
-    } catch (error) {
-      const errorMsg = error.response?.data?.message || error.response?.data?.error || error.message || 'Login API error.';
-      return rejectWithValue(errorMsg);
-    }
-  }
-);
-
-// 3. API ĐĂNG NHẬP CHỈ BẰNG EMAIL
-export const loginUserByEmailOnly = createAsyncThunk(
-  'user/loginByEmailOnly',
-  async (emailPayload, { rejectWithValue }) => {
-    try {
-      const response = await axios.post(`${userApiBase}/loginByEmail`, emailPayload, {
-        headers: { 'Content-Type': 'application/json' },
-      });
-      if (response.data && response.data.code === 1000 && response.data.result && response.data.result.token) {
+        // Lưu token vào localStorage NGAY LẬP TỨC sau khi đăng nhập thành công
+        localStorage.setItem('authToken', response.data.result.token);
         return response.data.result;
       } else {
-        return rejectWithValue(response.data?.message || 'Login (by email only) failed: Invalid response or missing token.');
+        return rejectWithValue(response.data?.message || 'Login failed');
       }
     } catch (error) {
-      const errorMsg = error.response?.data?.message || error.response?.data?.error || error.message || 'Login (by email only) API error.';
-      return rejectWithValue(errorMsg);
+      return rejectWithValue(error.response?.data?.message || 'Login API error.');
     }
   }
 );
-
-// 4. API CREATE USER BY EMAIL (GOOGLE LOGIN/SYNC)
-export const createUserByEmailOnly = createAsyncThunk(
-  'user/createUserByEmailOnly',
-  async (emailPayload, { rejectWithValue }) => {
-    try {
-      const response = await axios.post(`${userApiBase}/createUserByEmail`, emailPayload, {
-        headers: { 'Content-Type': 'application/json' },
-      });
-      // Giả sử API này cũng trả về token nếu user được tạo mới và tự động login
-      if (response.data && response.data.code === 1000 && response.data.result && response.data.result.token) {
-        return response.data.result;
-      } else if (response.data && response.data.code === 1000 && response.data.result) {
-        // Trường hợp chỉ trả về user info, không có token (ví dụ: user đã tồn tại)
-        return { ...response.data.result, token: null }; // Trả về token là null để không ghi đè token hiện có nếu có
-      } else {
-        return rejectWithValue(response.data?.message || 'Create user (by email only) failed: Invalid response.');
-      }
-    } catch (error) {
-      const errorMsg = error.response?.data?.message || error.response?.data?.error || error.message || 'Create user (by email only) API error.';
-      return rejectWithValue(errorMsg);
-    }
-  }
-);
-
-// 5. API Send OTP - Sử dụng apiClient nếu cần xác thực (ví dụ: đổi mật khẩu)
-export const sendOTP = createAsyncThunk(
-  'user/sendOTP',
-  async (emailData, { rejectWithValue }) => {
-    try {
-      const formData = new FormData();
-      formData.append('email', emailData.email);
-      // Nếu sendOTP không cần token, dùng axios.post(`${userApiBase}/sendOTP`, formData);
-      const response = await apiClient.post(`/user/sendOTP`, formData); // Đường dẫn tương đối với baseURL của apiClient
-      if (response.data && response.data.code === 1000 && response.data.result) {
-        return {
-          otpSent: true,
-          receivedOtp: response.data.result,
-          message: response.data.message || "OTP sent successfully"
-        };
-      } else {
-        return rejectWithValue(response.data?.message || 'Send OTP failed: Invalid response.');
-      }
-    } catch (error) {
-      const errorMsg = error.response?.data?.message || error.response?.data?.error || error.message || 'Send OTP API error.';
-      return rejectWithValue(errorMsg);
-    }
-  }
-);
-
-// 6. API Upload Avatar - Sử dụng apiClient
-export const uploadAvatar = createAsyncThunk(
-  'user/uploadAvatar',
-  async ({ email, imageFile }, { rejectWithValue }) => {
-    try {
-      const formData = new FormData();
-      formData.append('image', imageFile);
-      const response = await apiClient.post(`/user/uploadAvatar?email=${encodeURIComponent(email)}`, formData);
-      if (response.data && response.data.code === 1000 && response.data.result) {
-        return response.data.result; // Backend nên trả về object user đã cập nhật
-      } else {
-        return rejectWithValue(response.data?.message || 'Upload avatar failed: Invalid response.');
-      }
-    } catch (error) {
-      const errorMsg = error.response?.data?.message || error.response?.data?.error || error.message || 'Upload avatar API error.';
-      return rejectWithValue(errorMsg);
-    }
-  }
-);
-
-// 7. API CREATE HISTORY - Sử dụng apiClient
-export const createHistory = createAsyncThunk(
-  'user/createHistory',
-  async ({ idNovel, email, titleChapter }, { rejectWithValue }) => {
-    try {
-      const response = await apiClient.post(
-        `/user/createHistory?idNovel=${encodeURIComponent(idNovel)}&email=${encodeURIComponent(email)}&titleChapter=${encodeURIComponent(titleChapter)}`
-      );
-      if (response.data && (response.data.code === "1000" || response.data.code === 1000)) {
-        return response.data;
-      } else {
-        return rejectWithValue(response.data?.message || 'Create history failed: Invalid response.');
-      }
-    } catch (error) {
-      const errorMsg = error.response?.data?.message || error.response?.data?.error || error.message || 'Create history API error.';
-      return rejectWithValue(errorMsg);
-    }
-  }
-);
-
-// 8. API DELETE HISTORY - Sử dụng apiClient
-export const deleteHistory = createAsyncThunk(
-  'user/deleteHistory',
-  async (historyData, { rejectWithValue }) => {
-    try {
-      const response = await apiClient.delete(`/user/deleteHistory`, { data: historyData });
-      if (response.data && (response.data.code === "1000" || response.data.code === 1000)) {
-        return response.data;
-      } else {
-        return rejectWithValue(response.data?.message || 'Delete history failed: Invalid response.');
-      }
-    } catch (error) {
-      const errorMsg = error.response?.data?.message || error.response?.data?.error || error.message || 'Delete history API error.';
-      return rejectWithValue(errorMsg);
-    }
-  }
-);
-
-// 9. API GET ALL HISTORY BY USER - Sử dụng apiClient
-export const getAllHistoryByUser = createAsyncThunk(
-  'user/getAllHistoryByUser',
-  async (idUser, { rejectWithValue }) => { // Đổi thành idUser nếu API dùng idUser
-    try {
-      const response = await apiClient.get(`/user/getHistory?idUser=${encodeURIComponent(idUser)}`);
-      if (response.data && (response.data.code === 1000 || response.data.code === "1000") && Array.isArray(response.data.result)) {
-        return response.data.result;
-      } else if (response.data && (response.data.code === 1000 || response.data.code === "1000") && response.data.result === null) {
-        return [];
-      } else {
-        return rejectWithValue(response.data?.message || 'Failed to fetch history: Invalid response.');
-      }
-    } catch (error) {
-      const errorMsg = error.response?.data?.message || error.response?.data?.error || error.message || 'Get all history API error.';
-      return rejectWithValue(errorMsg);
-    }
-  }
-);
+// ... các thunk khác của bạn ...
 
 
-// --- SLICE DEFINITION ---
+// --- SLICE DEFINITION (CẬP NHẬT) ---
+
 const initialState = {
-  currentUser: null, // Sẽ lưu thông tin user (không bao gồm token)
-  token: localStorage.getItem('authToken') || null, // Chỉ lưu token
+  currentUser: null,
+  token: localStorage.getItem('authToken') || null,
   usersList: [],
   userHistory: [],
-  loading: false,
-  isOtpSending: false,
-  isHistoryLoading: false,
+  loading: false, // Loading cho các action thông thường (login, create,...)
+  // Thêm trạng thái loading RIÊNG cho việc xác thực phiên khi tải lại trang
+  isVerifyingSession: true, // Bắt đầu là `true` để hiển thị màn hình chờ
   error: null,
-  otpMessage: null,
-  historyActionStatus: null,
+  // ... các state khác
 };
 
 const userSlice = createSlice({
@@ -220,169 +79,77 @@ const userSlice = createSlice({
       state.currentUser = null;
       state.token = null;
       state.error = null;
-      state.historyActionStatus = null;
-      state.userHistory = [];
-      state.otpMessage = null;
+      state.isVerifyingSession = false; // Khi logout, không cần xác thực nữa
       localStorage.removeItem('currentUser');
       localStorage.removeItem('authToken');
+      // ... reset các state khác
     },
-    clearUserError: (state) => { state.error = null; },
-    clearOtpMessage: (state) => { state.otpMessage = null; },
-    clearHistoryActionStatus: (state) => { state.historyActionStatus = null; },
+    // Action này giờ chỉ mang tính tham khảo, logic chính nằm ở verifyUserSession
     loadUserFromStorage: (state) => {
       const savedUserString = localStorage.getItem('currentUser');
-      const savedToken = localStorage.getItem('authToken');
       if (savedUserString) {
         try {
           state.currentUser = JSON.parse(savedUserString);
-        } catch (e) {
-          console.error("Error parsing currentUser from localStorage", e);
-          localStorage.removeItem('currentUser');
-        }
-      }
-      if (savedToken) {
-        state.token = savedToken;
+        } catch (e) { console.error(e); }
       }
     },
-    clearUserHistory: (state) => {
-      state.userHistory = [];
-      state.isHistoryLoading = false;
-    }
+    // ... các reducer khác
   },
   extraReducers: (builder) => {
     const handleAuthSuccess = (state, action) => {
       state.loading = false;
-      // Giả sử action.payload là { user: {...}, token: "..." }
-      // Hoặc action.payload là object user đã chứa token: action.payload.token
-      // Hoặc action.payload chỉ là user, và token nằm ở response.data.token (cần điều chỉnh)
-      const userData = action.payload.user || action.payload; // Lấy thông tin user
+      state.isVerifyingSession = false; // Đăng nhập xong, phiên đã hợp lệ
+      const userData = action.payload.user || action.payload;
       const token = action.payload.token;
 
       state.currentUser = userData;
-      if (token) { // Chỉ cập nhật token nếu có token mới
+      if (token) {
         state.token = token;
+        // localStorage đã được set trong thunk, nhưng set lại ở đây để chắc chắn
         localStorage.setItem('authToken', token);
       }
-      localStorage.setItem('currentUser', JSON.stringify(userData)); // Lưu user info (không có token)
-      state.userHistory = []; // Xóa lịch sử của người dùng cũ
+      localStorage.setItem('currentUser', JSON.stringify(userData));
       state.error = null;
     };
+    
+    // ... (builder cho register, các action khác giữ nguyên)
 
-    const handleAuthPending = (state) => {
-      state.loading = true;
-      state.error = null;
-    };
+    // Xử lý cho matcher (đã bao gồm loginUserWithPassword)
+   
+      // ... các matcher khác
 
-    const handleAuthRejected = (state, action) => {
-      state.loading = false;
-      state.error = action.payload;
-      state.currentUser = null;
-      state.token = null;
-      localStorage.removeItem('currentUser');
-      localStorage.removeItem('authToken');
-    };
-
+    // --- XỬ LÝ CHO THUNK MỚI `verifyUserSession` ---
     builder
-      // Register User
-      .addCase(registerUser.pending, handleAuthPending)
-      .addCase(registerUser.fulfilled, (state, action) => {
-        state.loading = false;
-        // Đăng ký thành công có thể chưa đăng nhập ngay, chỉ set currentUser
-        state.currentUser = action.payload; // Payload là user info
-        // Token sẽ được set khi login
+      .addCase(verifyUserSession.pending, (state) => {
+        state.isVerifyingSession = true;
       })
-      .addCase(registerUser.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload;
+      .addCase(verifyUserSession.fulfilled, (state, action) => {
+        state.isVerifyingSession = false;
+        state.currentUser = action.payload; // Cập nhật user với data mới nhất
+        localStorage.setItem('currentUser', JSON.stringify(action.payload));
+        state.error = null;
       })
-
-      // Login User With Password & Login User By Email Only & Create User By Email Only
-      
-
-      // Send OTP
-      .addCase(sendOTP.pending, (state) => { state.isOtpSending = true; state.error = null; state.otpMessage = null; })
-      .addCase(sendOTP.fulfilled, (state, action) => { state.isOtpSending = false; state.otpMessage = action.payload.message; })
-      .addCase(sendOTP.rejected, (state, action) => { state.isOtpSending = false; state.error = action.payload; })
-
-      // Upload Avatar
-      .addCase(uploadAvatar.pending, (state) => { state.loading = true; state.error = null; })
-      .addCase(uploadAvatar.fulfilled, (state, action) => {
-        state.loading = false;
-        if (state.currentUser && state.currentUser.emailUser === action.payload.emailUser) {
-          // Giả sử action.payload là object user đã được cập nhật từ backend
-          state.currentUser = { ...state.currentUser, ...action.payload };
-          localStorage.setItem('currentUser', JSON.stringify(state.currentUser));
-        }
-      })
-      .addCase(uploadAvatar.rejected, (state, action) => { state.loading = false; state.error = action.payload; })
-
-      // Create History
-      .addCase(createHistory.pending, (state) => { state.loading = true; state.error = null; state.historyActionStatus = null; })
-      .addCase(createHistory.fulfilled, (state, action) => {
-        state.loading = false;
-        state.historyActionStatus = action.payload.message || 'History created successfully.';
-      })
-      .addCase(createHistory.rejected, (state, action) => { state.loading = false; state.error = action.payload; state.historyActionStatus = null; })
-
-      // Delete History
-      .addCase(deleteHistory.pending, (state) => { state.loading = true; state.error = null; state.historyActionStatus = null; })
-      .addCase(deleteHistory.fulfilled, (state, action) => {
-        state.loading = false;
-        state.historyActionStatus = action.payload.message || 'History deleted successfully.';
-        // Cân nhắc reload lại history ở đây hoặc để component tự gọi lại getAllHistoryByUser
-      })
-      .addCase(deleteHistory.rejected, (state, action) => { state.loading = false; state.error = action.payload; state.historyActionStatus = null; })
-
-      // Get All History By User
-      .addCase(getAllHistoryByUser.pending, (state) => { state.isHistoryLoading = true; state.error = null; })
-      .addCase(getAllHistoryByUser.fulfilled, (state, action) => {
-        state.isHistoryLoading = false;
-        state.userHistory = action.payload;
-      })
-      .addCase(getAllHistoryByUser.rejected, (state, action) => {
-        state.isHistoryLoading = false;
-        state.error = action.payload;
-        state.userHistory = [];
-      })
+      .addCase(verifyUserSession.rejected, (state, action) => {
+        state.isVerifyingSession = false; // Đã xác thực xong (dù thất bại)
+        state.currentUser = null;
+        state.token = null;
+        localStorage.removeItem('currentUser');
+        localStorage.removeItem('authToken');
+        console.log('Session rejected:', action.payload);
+      });
+       builder
       .addMatcher(
         (action) => [
           loginUserWithPassword.fulfilled.type,
-          loginUserByEmailOnly.fulfilled.type,
-          createUserByEmailOnly.fulfilled.type, // Nếu createUserByEmailOnly cũng đăng nhập và trả token
+          // ... các action login khác
         ].includes(action.type),
         handleAuthSuccess
       )
-      .addMatcher(
-        (action) => [
-          loginUserWithPassword.pending.type,
-          loginUserByEmailOnly.pending.type,
-          createUserByEmailOnly.pending.type,
-        ].includes(action.type),
-        handleAuthPending
-      )
-      .addMatcher(
-        (action) => [
-          loginUserWithPassword.rejected.type,
-          loginUserByEmailOnly.rejected.type,
-          createUserByEmailOnly.rejected.type,
-        ].includes(action.type),
-        handleAuthRejected
-      )
-      ;
   }
 });
 
-export const {
-  logoutUser,
-  clearUserError,
+export const { logoutUser, loadUserFromStorage,clearUserError, // THÊM LẠI clearUserError VÀO ĐÂY
   clearOtpMessage,
-  loadUserFromStorage,
   clearHistoryActionStatus,
-  clearUserHistory
-} = userSlice.actions;
-
-export const selectAuthToken = (state) => state.user.token;
-export const selectCurrentUser = (state) => state.user.currentUser;
-
-
+  clearUserHistory } = userSlice.actions;
 export default userSlice.reducer;

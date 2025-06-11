@@ -1,65 +1,75 @@
 // src/components/TopStories.jsx
-import React, { useEffect, useMemo } from "react"; // Thêm lại useEffect nếu TopStories tự fetch (không khuyến khích)
-import { useSelector, useDispatch } from "react-redux"; // Thêm lại useDispatch nếu TopStories tự fetch
+import React, { useEffect, useMemo } from "react";
+import { useSelector, useDispatch } from "react-redux";
 import { Link } from "react-router-dom";
 import { User, Book } from "lucide-react";
 
-// Import actions từ authorSlice và categorySlice
-// Nếu TopStories tự fetch (KHÔNG KHUYẾN KHÍCH cho component con tái sử dụng):
-// import { getAllAuthors } from "../redux/authorSlice";
-// import { getAllCategories } from "../redux/categorySlice";
+// Giả sử categories vẫn được fetch riêng và có slice tương ứng
+// Nếu không, bạn có thể bỏ qua phần liên quan đến categories hoặc lấy categories từ novel nếu có
+import { getAllCategories } from "../redux/categorySlice"; // Điều chỉnh đường dẫn nếu cần
 
 const TopStories = () => {
-  const dispatch = useDispatch(); // Cần dispatch nếu fetch ở đây
+  const dispatch = useDispatch();
 
   // Lấy dữ liệu từ store
   const { novels, loading: novelsLoading, error: novelsError } = useSelector((state) => state.novels);
-  const { authors, loading: authorsLoading, error: authorsError } = useSelector((state) => state.authors);
+  // Không cần lấy authors từ store nữa
+  // const { authors, loading: authorsLoading, error: authorsError } = useSelector((state) => state.authors);
   const { categories, loading: categoriesLoading, error: categoriesError } = useSelector((state) => state.categories);
 
-  // KHUYẾN KHÍCH: Dispatch action lấy authors và categories ở component cha (vd: HomePage)
-  // Nếu BẮT BUỘC phải fetch ở đây (ít lý tưởng hơn):
-  // useEffect(() => {
-  //   if (authors.length === 0 && !authorsLoading) { // Chỉ fetch nếu chưa có và không đang fetch
-  //     dispatch(getAllAuthors());
-  //   }
-  //   if (categories.length === 0 && !categoriesLoading) { // Chỉ fetch nếu chưa có và không đang fetch
-  //     dispatch(getAllCategories());
-  //   }
-  // }, [dispatch, authors.length, categories.length, authorsLoading, categoriesLoading]);
+  // Fetch categories nếu chưa có (giả sử categories vẫn được quản lý riêng)
+  // Nên thực hiện việc fetch này ở component cha (ví dụ: HomePage)
+  useEffect(() => {
+    if (!categories || categories.length === 0 && !categoriesLoading) {
+      dispatch(getAllCategories());
+    }
+  }, [dispatch, categories, categoriesLoading]);
 
 
   const renderError = (err, type) => (typeof err === 'string' ? err : err?.message || `Đã có lỗi xảy ra khi tải ${type}.`);
 
   const sectionsData = useMemo(() => {
-    if (!novels || novels.length === 0 || !authors || !categories) return [];
+    // Chỉ cần novels và categories (nếu categories vẫn được dùng)
+    if (!novels || novels.length === 0 || !categories) {
+        console.log("TopStories: novels hoặc categories chưa sẵn sàng", {novelsLength: novels?.length, categoriesExists: !!categories });
+        return [];
+    }
 
-    // Tạo map để tra cứu nhanh tên tác giả và thể loại
-    const authorMap = new Map(authors.map(author => [author.idAuthor, author.nameAuthor]));
+    // Tạo map để tra cứu nhanh tên thể loại (nếu cần)
+    // Nếu categories được nhúng trong novel, logic này sẽ khác
     const categoryMap = new Map(categories.map(category => [category.idCategory, category.nameCategory]));
 
     const getAuthorName = (novel) => {
-      // Giả sử novel object có trường idAuthor
-      return authorMap.get(novel.idAuthor) || "N/A";
+      // Lấy tên tác giả từ mảng novel.authors
+      if (novel.authors && novel.authors.length > 0) {
+        // Lấy tên của tác giả đầu tiên, hoặc nối tên nhiều tác giả
+        return novel.authors.map(author => author.nameAuthor).join(', ');
+      }
+      return "Chưa rõ"; // Fallback
     };
 
     const getGenre = (novel) => {
-      // Giả sử novel object có một mảng các category IDs hoặc một idCategory chính
-      // Ví dụ 1: Nếu novel.categories là một mảng các ID [{ idCategory: '1' }, { idCategory: '2' }]
-      // Hoặc novel.listCategory là mảng các object category đầy đủ
-      if (novel.listCategory && novel.listCategory.length > 0) {
+      // Logic lấy thể loại có thể giữ nguyên nếu novel.listCategory vẫn tồn tại
+      // Hoặc nếu categories được nhúng trong novel theo cách khác, cần điều chỉnh ở đây
+      if (novel.categories && novel.categories.length > 0) { // Giả sử novel giờ có trường categories
         // Lấy tên của category đầu tiên trong danh sách
-        return novel.listCategory[0].nameCategory || "N/A";
+        return novel.categories[0].nameCategory || "Chưa rõ";
       }
-      // Ví dụ 2: Nếu novel có một trường idCategory duy nhất (ví dụ: novel.idCategory)
-      // return categoryMap.get(novel.idCategory) || "N/A";
-      return "N/A"; // Fallback nếu không có category
+      // Fallback nếu dùng categoryMap từ state.categories
+      // if (novel.categoryIds && novel.categoryIds.length > 0) { // Nếu novel có mảng id thể loại
+      //   return categoryMap.get(novel.categoryIds[0]) || "Chưa rõ";
+      // }
+      return "Chưa rõ"; // Fallback nếu không có category
     };
 
+    // Sắp xếp và lọc truyện (logic này có thể giữ nguyên)
     const sortedByViews = [...novels].sort((a, b) => (b.viewNovel || 0) - (a.viewNovel || 0));
     const sortedByRating = [...novels].sort((a, b) => (parseFloat(b.rating) || 0) - (parseFloat(a.rating) || 0));
+
+    // Lọc ra các truyện không nằm trong top 1 của sortedByViews để tránh trùng lặp
+    const topViewId = sortedByViews.length > 0 ? sortedByViews[0].idNovel : null;
     const recommended = [...novels]
-        .filter(n => !sortedByViews.slice(0,1).map(s => s.idNovel).includes(n.idNovel))
+        .filter(n => n.idNovel !== topViewId) // Loại bỏ truyện top view nếu có
         .sort((a,b) => (parseFloat(b.rating) || 0) - (parseFloat(a.rating) || 0));
 
 
@@ -98,31 +108,58 @@ const TopStories = () => {
         list: recommended.slice(1, 10).map(n => ({id: n.idNovel, name: n.nameNovel})),
       },
     ].filter(section => section.topStory && section.topStory.id);
-  }, [novels, authors, categories]);
+  }, [novels, categories]); // Bỏ authors khỏi dependency
 
-  // Xử lý loading và error cho cả 3 loại dữ liệu
-  if ((novelsLoading && novels.length === 0) || (authorsLoading && authors.length === 0) || (categoriesLoading && categories.length === 0)) {
+  // Xử lý loading và error
+  if (novelsLoading && (!novels || novels.length === 0)) {
     return (
       <div className="container mx-auto p-4 sm:p-6">
-          <p className="text-center text-gray-500 py-5">Đang tải dữ liệu...</p>
+          <p className="text-center text-gray-500 py-5">Đang tải danh sách truyện...</p>
+      </div>
+    );
+  }
+  // Kiểm tra categoriesLoading nếu categories vẫn được fetch riêng và là bắt buộc
+  if (categoriesLoading && (!categories || categories.length === 0)) {
+     return (
+      <div className="container mx-auto p-4 sm:p-6">
+          <p className="text-center text-gray-500 py-5">Đang tải thể loại...</p>
       </div>
     );
   }
 
-  if (novelsError && novels.length === 0) {
+
+  if (novelsError && (!novels || novels.length === 0)) {
     return (
       <div className="container mx-auto p-4 sm:p-6">
           <p className="text-center text-red-500 py-5">Lỗi tải danh sách truyện: {renderError(novelsError, 'truyện')}</p>
       </div>
     );
   }
-  // Bạn có thể thêm xử lý lỗi cho authorsError và categoriesError nếu cần hiển thị thông báo cụ thể
+  // Thêm xử lý lỗi cho categoriesError nếu cần
+  if (categoriesError && (!categories || categories.length === 0)) {
+    return (
+      <div className="container mx-auto p-4 sm:p-6">
+          <p className="text-center text-red-500 py-5">Lỗi tải thể loại: {renderError(categoriesError, 'thể loại')}</p>
+      </div>
+    );
+  }
 
-  if (!sectionsData || sectionsData.length === 0) return (
+  if (!sectionsData || sectionsData.length === 0) {
+    // Thêm kiểm tra nếu novels có nhưng không đủ để tạo section
+    if (novels && novels.length > 0 && (!categories || categories.length === 0) && categoriesLoading) {
+        // Trường hợp này là đang đợi categories, có thể hiển thị loading khác
+        return (
+            <div className="container mx-auto p-4 sm:p-6">
+                <p className="text-center text-gray-500 py-5">Đang chờ dữ liệu thể loại...</p>
+            </div>
+        );
+    }
+    return (
     <div className="container mx-auto p-4 sm:p-6">
-        <p className="text-center text-gray-500 py-5">Không có dữ liệu truyện để hiển thị.</p>
+        <p className="text-center text-gray-500 py-5">Không có dữ liệu truyện nổi bật để hiển thị.</p>
     </div>
   );
+}
 
   return (
     <div className="container mx-auto p-4 sm:p-6">
@@ -168,7 +205,7 @@ const TopStories = () => {
                       itemIdx === 2 ? "bg-orange-400 text-white" :
                       "bg-gray-200 text-gray-600"}`}
                   >
-                    {itemIdx + 2}
+                    {itemIdx + 2} {/* Số thứ tự bắt đầu từ 2 */}
                   </span>
                   <Link to={`/novel/${item.id}`} className="truncate hover:text-blue-600 hover:underline" title={item.name}>
                     {item.name}

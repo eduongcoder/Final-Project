@@ -1,241 +1,213 @@
 import React, { useEffect, useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import {  createCategory,updateCategory,deleteCategory  } from '../../redux/categorySlice';
+import { createCategory, updateCategory, deleteCategory } from '../../redux/categorySlice';
 import { Star, PencilLine, Trash } from 'lucide-react';
-
 import Select from 'react-select';
 
 const TopOrders = () => {
   const dispatch = useDispatch();
   const { categories, loading, error } = useSelector((state) => state.categories);
-const [showForm, setShowForm] = useState(false);
-const [newCategory, setNewCategory] = useState({
-  nameCategory: '',
-  
-  novels: [],
-});
+  const { novels } = useSelector((state) => state.novels);
 
-  // State for pagination
-  const [currentPage, setCurrentPage] = useState(1);
-const [isEditing, setIsEditing] = useState(false); // true nếu đang sửa
-const { novels } = useSelector((state) => state.novels);
-const novelOptions = novels?.map((novel) => ({
-  value: novel.idNovel,
-  label: novel.nameNovel,
-}));
-
-const [idCategory,setIdcategory]=useState(null);
-  const CategorisPerPage = 5; // Number of authors per page
-  const totalCategoris = categories.length;
-
-  // Calculate the indices of the authors to show for the current page
-  const indexOfLastCategory = currentPage * CategorisPerPage;
-  const indexOfFirstCategory = indexOfLastCategory - CategorisPerPage;
-  const currentCategory = categories.slice(indexOfFirstCategory, indexOfLastCategory);
-
- const handleSubmit = (e) => {
-  e.preventDefault();
-
-
-    const payload = {
-      idCategory: isEditing ? idCategory : null,
-    nameCategory: newCategory.nameCategory,
-    novels: newCategory.novels.map(id => ({ idNovel: id })) // nếu backend cần dạng object
-    // Nếu chỉ cần danh sách ID: novels: newCategory.novels
-  };
-
-  if (isEditing) {
-    dispatch(updateCategory(payload));
-  } else {
-    dispatch(createCategory(payload));
-  }
-  // Reset
-  setNewCategory({
+  const [showForm, setShowForm] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [currentCategoryId, setCurrentCategoryId] = useState(null);
+  const [newCategory, setNewCategory] = useState({
     nameCategory: '',
-    novels: [],
+    novels: [], // Sẽ lưu một mảng các ID của novel
   });
-  setIsEditing(false);
-  setIdcategory(null)
-  setShowForm(false);
-};
 
-//hack handleEditClick
-const handleEditClick = (category) => {
-  setNewCategory({
-     nameCategory: category.nameCategory || '',
-    novels: Array.isArray(category.novels) ? category.novels.map(n => n.idNovel) : [],
-  });
-  console.log(category);
-  setIdcategory(category.idCategory)
-  setIsEditing(true); // Đặt trạng thái là đang chỉnh sửa
-  setShowForm(true);
-  // Nếu bạn cần tracking ID để update sau này:
-};
+  const [currentPage, setCurrentPage] = useState(1);
+  const categoriesPerPage = 5;
 
-  // Handle delete author
-  const handleDelete = (id) => {
-    console.log('Deleting author with ID:', id);
-    dispatch(deleteCategory(id));
+  // Tạo options cho react-select
+  const novelOptions = novels?.map((novel) => ({
+    value: novel.idNovel,
+    label: novel.nameNovel,
+  }));
+
+  const resetForm = () => {
+    setShowForm(false);
+    setIsEditing(false);
+    setCurrentCategoryId(null);
+    setNewCategory({ nameCategory: '', novels: [] });
   };
 
-  // Handle page change
-  const paginate = (pageNumber) => setCurrentPage(pageNumber);
-{loading ? (isEditing ? "Updating..." : "Creating...") : (isEditing ? "Save Changes" : "Create Novel")}
+  const handleAddNewClick = () => {
+    resetForm(); // Đảm bảo form sạch sẽ
+    setShowForm(true);
+  };
 
-  if (loading) return <div>Loading...</div>;
+  const handleEditClick = (category) => {
+    setIsEditing(true);
+    setCurrentCategoryId(category.idCategory);
+    setNewCategory({
+      nameCategory: category.nameCategory || '',
+      // Đảm bảo novels là một mảng ID, kể cả khi category.novels là null/undefined
+      novels: Array.isArray(category.novels) ? category.novels.map(n => n.idNovel) : [],
+    });
+    setShowForm(true);
+  };
+
+  const handleDelete = (id) => {
+    if (window.confirm('Are you sure you want to delete this category?')) {
+      dispatch(deleteCategory(id));
+    }
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+
+    // Payload cần được định dạng theo yêu cầu của backend
+    // Giả sử backend cần key là `idNovels` cho mảng ID
+    const payload = {
+      nameCategory: newCategory.nameCategory,
+      novels: newCategory.novels,
+    };
+
+    if (isEditing) {
+      // Khi update, ta cần gửi cả id của category
+      const updatePayload = { ...payload, idCategory: currentCategoryId };
+      dispatch(updateCategory(updatePayload));
+    } else {
+      dispatch(createCategory(payload));
+    }
+    
+    resetForm();
+  };
+
+  // Pagination logic
+  const indexOfLastCategory = currentPage * categoriesPerPage;
+  const indexOfFirstCategory = indexOfLastCategory - categoriesPerPage;
+  const currentCategories = categories.slice(indexOfFirstCategory, indexOfLastCategory);
+  const totalPages = Math.ceil(categories.length / categoriesPerPage);
+
+  const paginate = (pageNumber) => {
+    if (pageNumber > 0 && pageNumber <= totalPages) {
+      setCurrentPage(pageNumber);
+    }
+  };
+
   if (error) return <div>Error: {error}</div>;
 
   return (
-
     <div>
-        {/* Button mở form */}
-<button
-  onClick={() => setShowForm(true)}
-  className="bg-green-500 text-white px-4 py-2 rounded mb-4"
->
-Add Category  </button>
+      <button
+        onClick={handleAddNewClick}
+        className="bg-green-500 text-white px-4 py-2 rounded mb-4 hover:bg-green-600 transition-colors"
+      >
+        Add Category
+      </button>
 
-{showForm && (
-  <div>
-    <div className="fixed inset-0 bg-gray-700 opacity-50 z-10" onClick={() => setShowForm(false)}></div>
-    <div className="fixed inset-0 flex justify-center items-center z-20">
-      <div className="bg-white p-6 rounded shadow-lg w-1/3">
-<h2 className="text-xl font-bold mb-4">
-                {isEditing ? 'Edit Category ' : 'Create New Category '}
+      {showForm && (
+        <div>
+          <div className="fixed inset-0 bg-gray-700 opacity-50 z-10" onClick={resetForm}></div>
+          <div className="fixed inset-0 flex justify-center items-center z-20">
+            <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-lg">
+              <h2 className="text-2xl font-bold mb-6 text-gray-800">
+                {isEditing ? 'Edit Category' : 'Create New Category'}
               </h2>
-        {[
-          ['nameCategory', 'CategoryName'],
-         
-        ].map(([key, label, type = 'text']) => (
-          <div key={key} className="mb-3">
-            <label className="block mb-1">{label}</label>
-            <input
-              type={type}
-              value={newCategory[key]}
-              onChange={(e) => setNewCategory({ ...newCategory, [key]: e.target.value })}
-              className="border p-2 w-full"
-            />
+              <form onSubmit={handleSubmit}>
+                <div className="mb-4">
+                  <label htmlFor="nameCategory" className="block text-sm font-medium text-gray-700 mb-1">Category Name</label>
+                  <input
+                    id="nameCategory"
+                    type="text"
+                    value={newCategory.nameCategory}
+                    onChange={(e) => setNewCategory({ ...newCategory, nameCategory: e.target.value })}
+                    className="border p-2 w-full rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                    required
+                  />
+                </div>
+
+                <div className="mb-6">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Select Novels</label>
+                  <Select
+                    isMulti
+                    options={novelOptions}
+                    className="react-select-container"
+                    classNamePrefix="react-select"
+                    value={novelOptions.filter(opt => newCategory.novels.includes(opt.value))}
+                    onChange={(selectedOptions) =>
+                      setNewCategory({ // SỬA Ở ĐÂY
+                        ...newCategory,
+                        novels: selectedOptions ? selectedOptions.map(opt => opt.value) : [],
+                      })
+                    }
+                    isLoading={!novels}
+                    placeholder="Search and select novels..."
+                  />
+                </div>
+                
+                <div className="flex justify-end gap-4">
+                  <button
+                    type="button"
+                    onClick={resetForm}
+                    className="bg-gray-300 text-gray-800 px-4 py-2 rounded-md hover:bg-gray-400 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors disabled:bg-blue-300"
+                    disabled={loading}
+                  >
+                    {loading ? (isEditing ? "Updating..." : "Creating...") : (isEditing ? "Save Changes" : "Create Category")}
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
-        ))}
+        </div>
+      )}
 
-       <label className="block mb-2">Select Novels</label>
-        <Select
-          isMulti
-          options={novelOptions}
-          value={novelOptions.filter((opt) =>
-            newCategory.novels.includes(opt.value)
+      <div className="card">
+        <div className="card-header"><div className="card-title">Categories</div></div>
+        <div className="card-body p-0">
+          <div className="overflow-x-auto">
+            <table className="table w-full">
+              <thead>
+                <tr className="table-row bg-gray-100">
+                  <th className="table-head px-4 py-3 text-left">#</th>
+                  <th className="table-head px-4 py-3 text-left">Name</th>
+                  <th className="table-head px-4 py-3 text-left">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="table-body">
+                {loading && <tr><td colSpan="3" className="text-center p-4">Loading...</td></tr>}
+                {!loading && currentCategories.length > 0 ? (
+                  currentCategories.map((category, index) => (
+                    <tr key={category.idCategory} className="table-row border-b hover:bg-gray-50">
+                      <td className="table-cell px-4 py-3">{indexOfFirstCategory + index + 1}</td>
+                      <td className="table-cell px-4 py-3 font-medium">{category.nameCategory}</td>
+                      <td className="table-cell px-4 py-3">
+                        <div className="flex items-center gap-x-4">
+                          <button onClick={() => handleEditClick(category)} className="text-blue-600 hover:text-blue-800">
+                            <PencilLine size={18} />
+                          </button>
+                          <button onClick={() => handleDelete(category.idCategory)} className="text-red-600 hover:text-red-800">
+                            <Trash size={18} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  !loading && <tr><td colSpan="3" className="text-center p-4">No categories available.</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+          {totalPages > 1 && (
+            <div className="flex justify-center items-center p-4">
+              <button onClick={() => paginate(currentPage - 1)} disabled={currentPage === 1} className="pagination-btn">Previous</button>
+              <span className="pagination-text mx-4">Page {currentPage} of {totalPages}</span>
+              <button onClick={() => paginate(currentPage + 1)} disabled={currentPage === totalPages} className="pagination-btn">Next</button>
+            </div>
           )}
-          onChange={(selectedOptions) =>
-            setnewCategory({
-              ...newCategoris,
-              novels: selectedOptions.map((opt) => opt.value),
-            })
-          }
-        />
-
-
-
-        {/* Submit */}
-        <button
-                onClick={handleSubmit}
-                className="bg-blue-500 text-white p-2 rounded mb-2 w-full"
-                disabled={loading}
-              >
-                {loading
-                  ? isEditing ? "Updating..." : "Creating..."
-                  : isEditing ? "Save Changes" : "Create Novel"}
-              </button>
-
-        <button
-          onClick={() => setShowForm(false)}
-          className="bg-gray-500 text-white px-4 py-2 rounded w-full"
-        >
-          Cancel
-        </button>
+        </div>
       </div>
     </div>
-  </div>
-)}
-    <div className="card">
-      
-      <div className="card-header">
-        <div className="card-title">Top Orders</div>
-      </div>
-    
-
-      {/* Product Table */}
-      <div className="card-body p-0">
-        <div className="relative  w-full shrink-0 overflow-auto rounded-none [scrollbar-width:_thin]">
-          <table className="table">
-            <thead className="table-header">
-              <tr className="table-row">
-                <th className="table-head">#</th>
-                <th className="table-head">NameCategory</th>
-                <th className="table-head">Actions</th>
-              </tr>
-            </thead>
-
-            <tbody className="table-body">
-              {/* Ensure authors is an array before mapping */}
-              {Array.isArray(currentCategory) && currentCategory.length > 0 ? (
-                currentCategory.map((category, index) => (
-                  <tr key={category.idCategory} className="table-row">
-                    <td className="table-cell">{index + 1}</td> {/* Use index for numbering */}
-                    <td className="table-cell">
-                      <div className="flex w-max gap-x-4">
-                       
-                          <p>{category.nameCategory}</p>
-                      </div>
-                    </td>
-                   
-                    <td className="table-cell">
-                      <div className="flex items-center gap-x-4">
-                        <button className="text-blue-500 dark:text-blue-600"
-                        onClick={() => {handleEditClick(category)} }// Open edit form
-                        >
-                          <PencilLine size={20} />
-                        </button>
-                        <button
-                          className="text-red-500"
-                          onClick={() => handleDelete(category.idCategory)}
-                        >
-                          <Trash size={20} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan="5" className="text-center">No Category available</td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Pagination Controls */}
-        <div className="pagination-controls flex justify-center mt-4">
-          <button
-            onClick={() => paginate(currentPage - 1)}
-            disabled={currentPage === 1}
-            className="pagination-btn"
-          >
-            Previous
-          </button>
-          <span className="pagination-text">
-            Page {currentPage} of {Math.ceil(totalCategoris / CategorisPerPage)}
-          </span>
-          <button
-            onClick={() => paginate(currentPage + 1)}
-            disabled={currentPage === Math.ceil(totalCategoris / CategorisPerPage)}
-            className="pagination-btn"
-          >
-            Next
-          </button>
-        </div>
-      </div>
-    </div></div>
   );
 };
 

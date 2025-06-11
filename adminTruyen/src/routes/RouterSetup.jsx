@@ -1,14 +1,14 @@
 import React, { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { createBrowserRouter, RouterProvider, Navigate, Outlet } from "react-router-dom";
-import { ThemeProvider, createTheme } from '@mui/material/styles'; // BƯỚC 1: Import
-import CssBaseline from '@mui/material/CssBaseline';                // (Khuyến khích)
+import { createBrowserRouter, RouterProvider, Navigate } from "react-router-dom";
+import { ThemeProvider, createTheme } from '@mui/material/styles';
+import CssBaseline from '@mui/material/CssBaseline';
 
 // Redux actions
 import { getAllAuthors } from "@/redux/authorSlice";
 import { getAllNovels } from "@/redux/novelSlice";
 import { getAllCategories } from "@/redux/categorySlice";
-import { loadUserFromStorage } from "@/redux/userSlice";
+// `loadUserFromStorage` không còn cần thiết ở đây nữa
 
 // Layout & Pages
 import AdminLayouts from "@/pages/layouts/AdminLayouts";
@@ -20,92 +20,66 @@ import {
   PaymentManagement
 } from "../pages";
 
-// BƯỚC 2: Tạo theme (có thể đặt ở ngoài hoặc trong component)
 const adminTheme = createTheme({
   palette: {
-    mode: 'light', // or 'dark'
-    primary: {
-      main: '#1976d2',
-    },
-    secondary: {
-      main: '#dc004e',
-    },
-    background: {
-      default: '#f4f6f8',
-      paper: '#ffffff',
-    }
+    mode: 'light',
+    primary: { main: '#1976d2' },
+    secondary: { main: '#dc004e' },
+    background: { default: '#f4f6f8', paper: '#ffffff' }
   },
-  // Bạn có thể thêm các tùy chỉnh khác ở đây
 });
 
+// --- COMPONENT BẢO VỆ ROUTE (PHIÊN BẢN MỚI, GỌN HƠN) ---
+const ProtectedAdminRoute = ({ children }) => {
+  // Chỉ cần lấy 2 trạng thái này từ Redux
+  const { currentUser, isVerifyingSession } = useSelector((state) => state.user) || {};
 
-// --- COMPONENT BẢO VỆ ROUTE (Giữ nguyên, đã đúng) ---
-const ProtectedAdminRoute = ({ children }) => { // Thêm props 'children'
-  const dispatch = useDispatch();
-  const { currentUser, loading, token } = useSelector((state) => state.user) || {};
-
-  useEffect(() => {
-    if (!currentUser && token) {
-        dispatch(loadUserFromStorage());
-    }
-  }, [dispatch, currentUser, token]);
-
-  if (loading) {
+  // Nếu đang trong quá trình xác thực token với server, hiển thị màn hình chờ.
+  // Đây là điểm mấu chốt để ngăn việc bị đá về trang login khi F5.
+  if (isVerifyingSession) {
     return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-        Đang kiểm tra xác thực...
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', fontSize: '1.2rem' }}>
+        Đang tải phiên đăng nhập...
       </div>
     );
   }
 
+  // Sau khi đã xác thực xong, nếu không có currentUser, chuyển hướng về trang login.
   if (!currentUser) {
     return <Navigate to="/" replace />;
   }
 
-  // Thay vì dùng <Outlet />, chúng ta render 'children' được truyền vào.
-  // Điều này giúp cấu trúc linh hoạt hơn.
+  // Nếu mọi thứ ổn, render các component con đã được truyền vào.
   return children; 
 };
 
 // --- COMPONENT TẢI DỮ LIỆU (Giữ nguyên) ---
 const PreloadDataWrapper = ({ children }) => {
   const dispatch = useDispatch();
-
   useEffect(() => {
+    // Chỉ tải dữ liệu này KHI người dùng đã được xác thực và vào trang admin
     dispatch(getAllAuthors());
     dispatch(getAllNovels());
     dispatch(getAllCategories());
   }, [dispatch]);
-
   return children;
 };
 
-// --- CẤU HÌNH ROUTER (Đã được sửa đổi) ---
+// --- CẤU HÌNH ROUTER (Giữ nguyên cấu trúc) ---
 const router = createBrowserRouter([
-  {
-    path: "/",
-    element: <LoginAdmin />,
-  },
+  { path: "/", element: <LoginAdmin /> },
   {
     path: "/admin",
-    // BƯỚC 3: Sửa đổi cấu trúc element
     element: (
-      // Bọc ngoài cùng là Route được bảo vệ
       <ProtectedAdminRoute>
-        {/* Bọc tiếp theo là ThemeProvider để cung cấp theme */}
         <ThemeProvider theme={adminTheme}>
-          {/* CssBaseline để chuẩn hóa style */}
           <CssBaseline />
-          {/* Bọc tiếp theo là component tải dữ liệu */}
           <PreloadDataWrapper>
-            {/* Trong cùng là Layout của trang Admin */}
-            {/* AdminLayouts sẽ chứa <Outlet /> để render các trang con */}
             <AdminLayouts /> 
           </PreloadDataWrapper>
         </ThemeProvider>
       </ProtectedAdminRoute>
     ),
-    // Các children này sẽ được render bởi <Outlet /> bên trong AdminLayouts
     children: [
       { index: true, element: <Dashboard /> },
       { path: "categoris", element: <CategoryManagement /> },
@@ -116,10 +90,7 @@ const router = createBrowserRouter([
       { path: "comment", element: <CommentManagement /> },
     ],
   },
-  {
-    path: "*",
-    element: <PageNotFound />,
-  },
+  { path: "*", element: <PageNotFound /> },
 ]);
 
 export default function RouterSetup() {

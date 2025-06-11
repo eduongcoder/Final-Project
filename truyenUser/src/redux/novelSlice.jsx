@@ -1,123 +1,123 @@
 // src/redux/novelSlice.js
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import axios from 'axios'; // axios gốc cho các API public/whitelist
-import apiClient from '../services/api'; // apiClient cho các API cần xác thực
+import axios from 'axios'; // Dùng cho các API public không cần token
+import apiClient from '../services/api'; // Dùng cho các API cần token (đã cấu hình interceptor)
 
-const publicApiBaseNovel = "https://truongthaiduongphanthanhvu.onrender.com/novel"; // Cho API public
+// Base URL cho các API public liên quan đến novel
+const publicApiBaseNovel = "https://truongthaiduongphanthanhvu.onrender.com/novel";
+// Base URL tương đối cho các API cần token (sẽ được ghép với baseURL của apiClient)
+const protectedApiBaseNovel = "/novel"; // Ví dụ: /novel/create, /novel/update/:id
 
-// API GET ALL NOVELS (Whitelist - không cần token)
+// --- API THUNKS ---
+
+// 1. Lấy tất cả truyện (API Public - không cần token)
 export const getAllNovels = createAsyncThunk(
   'novels/getAll',
   async (_, { rejectWithValue }) => {
     try {
-      // Sử dụng axios gốc vì đây là API public
       const response = await axios.get(`${publicApiBaseNovel}/getAll`);
       if (response.data && response.data.code === 1000 && Array.isArray(response.data.result)) {
+        // Dữ liệu response.data.result đã chứa mảng các novel,
+        // mỗi novel object có trường "authors" là một mảng các object tác giả.
         return response.data.result;
       }
-      return rejectWithValue(response.data?.message || 'Failed to get all novels');
+      return rejectWithValue(response.data?.message || 'Không thể tải danh sách truyện.');
     } catch (error) {
-      return rejectWithValue(error.response?.data?.message || error.message || 'Error fetching all novels');
+      return rejectWithValue(error.response?.data?.message || error.message || 'Lỗi khi tải danh sách truyện.');
     }
   }
 );
 
-// API GET NOVEL BY ID (Whitelist - không cần token)
+// 2. Lấy truyện theo ID (API Public - không cần token)
 export const getNovelById = createAsyncThunk(
   'novels/getById',
-  async (id, { rejectWithValue }) => {
+  async (idNovel, { rejectWithValue }) => {
     try {
-      // Sử dụng axios gốc vì đây là API public
-      // Giả sử endpoint là /novel/{id} hoặc /novel/getById/{id}
-      // Nếu là /novel/{id}
-      const response = await axios.get(`${publicApiBaseNovel}/${id}`);
-      // Nếu là /novel/getById/{id}
-      // const response = await axios.get(`${publicApiBaseNovel}/getById/${id}`);
-
+      // Giả sử endpoint là /novel/{idNovel}
+      const response = await axios.get(`${publicApiBaseNovel}/${idNovel}`);
       if (response.data && response.data.code === 1000 && response.data.result) {
+        // Dữ liệu response.data.result là một novel object,
+        // đã bao gồm trường "authors" là một mảng các object tác giả.
         return response.data.result;
       }
-      return rejectWithValue(response.data?.message || `Failed to get novel with id ${id}`);
+      return rejectWithValue(response.data?.message || `Không thể tải truyện với ID ${idNovel}.`);
     } catch (error) {
-      return rejectWithValue(error.response?.data?.message || error.message || `Error fetching novel with id ${id}`);
+      return rejectWithValue(error.response?.data?.message || error.message || `Lỗi khi tải truyện với ID ${idNovel}.`);
     }
   }
 );
 
-// API CREATE NOVEL (YÊU CẦU TOKEN)
+// 3. Tạo truyện mới (API cần token)
 export const createNovel = createAsyncThunk(
   'novels/create',
   async (novelData, { rejectWithValue }) => {
     try {
-      // Sử dụng apiClient để tự động gửi token
-      const response = await apiClient.post('/novel/create', novelData, { // Đường dẫn tương đối với baseURL của apiClient
-        headers: { 'Content-Type': 'application/json' }, // Vẫn có thể thêm header khác nếu cần
+      // novelData nên bao gồm các trường cần thiết, ví dụ: nameNovel, descriptionNovel,
+      // và có thể là một mảng các idAuthor nếu backend yêu cầu như vậy để liên kết tác giả.
+      // Hoặc backend có thể xử lý việc này thông qua một trường khác.
+      const response = await apiClient.post(`${protectedApiBaseNovel}/create`, novelData, {
+        headers: { 'Content-Type': 'application/json' }, // Đảm bảo content type nếu backend yêu cầu
       });
       if (response.data && response.data.code === 1000 && response.data.result) {
+        // Giả sử backend trả về novel object mới đã tạo, bao gồm cả thông tin authors nếu có.
         return response.data.result;
       }
-      return rejectWithValue(response.data?.message || 'Failed to create novel');
+      return rejectWithValue(response.data?.message || 'Không thể tạo truyện mới.');
     } catch (error) {
-      // Xử lý lỗi 401/403 nếu cần
       if (error.response && (error.response.status === 401 || error.response.status === 403)) {
-        return rejectWithValue('Unauthorized or Forbidden. Please login again.');
+        return rejectWithValue('Không có quyền truy cập hoặc phiên đăng nhập hết hạn.');
       }
-      return rejectWithValue(error.response?.data?.message || error.message || 'Error creating novel');
+      return rejectWithValue(error.response?.data?.message || error.message || 'Lỗi khi tạo truyện mới.');
     }
   }
 );
 
-// API UPDATE NOVEL (YÊU CẦU TOKEN)
+// 4. Cập nhật truyện (API cần token)
 export const updateNovel = createAsyncThunk(
   'novels/update',
-  // Giả sử bạn truyền { idNovel, novelUpdateData }
   async ({ idNovel, novelUpdateData }, { rejectWithValue }) => {
     try {
-      // Sử dụng apiClient
-      // Endpoint có thể là /novel/update/{idNovel} hoặc /novel/update (với id trong body)
-      // Ví dụ: /novel/update/{idNovel}
-      const response = await apiClient.put(`/novel/update/${idNovel}`, novelUpdateData, {
+      // novelUpdateData nên chứa các trường cần cập nhật.
+      const response = await apiClient.put(`${protectedApiBaseNovel}/update/${idNovel}`, novelUpdateData, {
         headers: { 'Content-Type': 'application/json' },
       });
-      // Nếu endpoint là /novel/update và idNovel nằm trong novelUpdateData:
-      // const response = await apiClient.put('/novel/update', novelUpdateData);
-
       if (response.data && response.data.code === 1000 && response.data.result) {
+        // Giả sử backend trả về novel object đã cập nhật, bao gồm cả thông tin authors.
         return response.data.result;
       }
-      return rejectWithValue(response.data?.message || 'Failed to update novel');
+      return rejectWithValue(response.data?.message || 'Không thể cập nhật truyện.');
     } catch (error) {
       if (error.response && (error.response.status === 401 || error.response.status === 403)) {
-        return rejectWithValue('Unauthorized or Forbidden. Please login again.');
+        return rejectWithValue('Không có quyền truy cập hoặc phiên đăng nhập hết hạn.');
       }
-      return rejectWithValue(error.response?.data?.message || error.message || 'Error updating novel');
+      return rejectWithValue(error.response?.data?.message || error.message || 'Lỗi khi cập nhật truyện.');
     }
   }
 );
 
-// API DELETE NOVEL (YÊU CẦU TOKEN)
+// 5. Xóa truyện (API cần token)
 export const deleteNovel = createAsyncThunk(
   'novels/delete',
   async (idNovel, { rejectWithValue }) => {
     try {
-      // Sử dụng apiClient
-      const response = await apiClient.delete(`/novel/delete/${idNovel}`); // Giả sử endpoint là /novel/delete/{id}
+      const response = await apiClient.delete(`${protectedApiBaseNovel}/delete/${idNovel}`);
       if (response.data && response.data.code === 1000) {
-        return idNovel; // Trả về id để dễ dàng filter trong reducer
+        return idNovel; // Trả về idNovel để reducer có thể xóa nó khỏi state
       }
-      return rejectWithValue(response.data?.message || `Failed to delete novel with id ${idNovel}`);
+      return rejectWithValue(response.data?.message || `Không thể xóa truyện với ID ${idNovel}.`);
     } catch (error) {
       if (error.response && (error.response.status === 401 || error.response.status === 403)) {
-        return rejectWithValue('Unauthorized or Forbidden. Please login again.');
+        return rejectWithValue('Không có quyền truy cập hoặc phiên đăng nhập hết hạn.');
       }
-      return rejectWithValue(error.response?.data?.message || error.message || `Error deleting novel with id ${idNovel}`);
+      return rejectWithValue(error.response?.data?.message || error.message || `Lỗi khi xóa truyện với ID ${idNovel}.`);
     }
   }
 );
 
+// --- SLICE DEFINITION ---
 const initialState = {
-  novels: [],
-  currentNovel: null,
+  novels: [],          // Danh sách tất cả truyện, mỗi truyện có thể chứa mảng authors
+  currentNovel: null,  // Truyện đang được xem chi tiết, cũng chứa mảng authors
   loading: false,
   error: null,
 };
@@ -126,47 +126,53 @@ const novelSlice = createSlice({
   name: 'novels',
   initialState,
   reducers: {
+    // Xóa truyện hiện tại đang xem (ví dụ: khi rời khỏi trang chi tiết)
     clearCurrentNovel: (state) => {
       state.currentNovel = null;
-      state.error = null;
+      state.error = null; // Cũng có thể xóa lỗi liên quan đến currentNovel
     },
-    // Bạn có thể thêm reducer để set currentNovel từ danh sách novels đã có mà không cần gọi API
+    // Reducer này hữu ích nếu bạn muốn set currentNovel từ danh sách đã có mà không cần gọi API lại
+    // Ví dụ: khi click vào một truyện từ danh sách đã fetch bằng getAllNovels
     setCurrentNovelFromList: (state, action) => {
-      const novelId = action.payload;
-      state.currentNovel = state.novels.find(novel => novel.idNovel === novelId) || null;
+      const novelIdToSet = action.payload;
+      state.currentNovel = state.novels.find(novel => novel.idNovel === novelIdToSet) || null;
+      state.error = null; // Xóa lỗi nếu có khi set truyện mới
     }
   },
   extraReducers: (builder) => {
     builder
-      // --- getAllNovels ---
+      // getAllNovels
       .addCase(getAllNovels.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
       .addCase(getAllNovels.fulfilled, (state, action) => {
         state.loading = false;
-        state.novels = action.payload;
+        state.novels = action.payload; // payload đã bao gồm authors cho mỗi novel
       })
       .addCase(getAllNovels.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
+        state.novels = []; // Có thể reset về rỗng nếu lỗi
       })
-      // --- getNovelById ---
+
+      // getNovelById
       .addCase(getNovelById.pending, (state) => {
         state.loading = true;
         state.error = null;
-        // state.currentNovel = null; // Không reset ở đây nếu muốn giữ lại data cũ trong khi load
+        // Không nên reset currentNovel ở đây để UI không bị nhấp nháy nếu đang hiển thị truyện cũ
       })
       .addCase(getNovelById.fulfilled, (state, action) => {
         state.loading = false;
-        state.currentNovel = action.payload;
+        state.currentNovel = action.payload; // payload đã bao gồm authors
       })
       .addCase(getNovelById.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
-        state.currentNovel = null;
+        state.currentNovel = null; // Reset nếu lỗi
       })
-      // --- createNovel ---
+
+      // createNovel
       .addCase(createNovel.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -174,16 +180,18 @@ const novelSlice = createSlice({
       .addCase(createNovel.fulfilled, (state, action) => {
         state.loading = false;
         if (action.payload && action.payload.idNovel) {
-          state.novels.unshift(action.payload); // Thêm vào đầu danh sách
+          // Thêm truyện mới vào đầu danh sách (hoặc cuối, tùy theo yêu cầu hiển thị)
+          state.novels.unshift(action.payload); // action.payload là novel object mới, đã có authors
         } else {
-          console.warn("Create novel fulfilled but payload is not a valid novel object:", action.payload);
+          console.warn("Create novel fulfilled nhưng payload không hợp lệ:", action.payload);
         }
       })
       .addCase(createNovel.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
       })
-      // --- updateNovel ---
+
+      // updateNovel
       .addCase(updateNovel.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -191,31 +199,36 @@ const novelSlice = createSlice({
       .addCase(updateNovel.fulfilled, (state, action) => {
         state.loading = false;
         if (action.payload && action.payload.idNovel) {
-          const index = state.novels.findIndex((novel) => novel.idNovel === action.payload.idNovel);
+          const updatedNovel = action.payload; // action.payload là novel object đã cập nhật, có authors
+          // Cập nhật trong danh sách novels
+          const index = state.novels.findIndex((novel) => novel.idNovel === updatedNovel.idNovel);
           if (index !== -1) {
-            state.novels[index] = action.payload;
+            state.novels[index] = updatedNovel;
           }
-          if (state.currentNovel && state.currentNovel.idNovel === action.payload.idNovel) {
-            state.currentNovel = action.payload;
+          // Cập nhật currentNovel nếu nó đang được hiển thị
+          if (state.currentNovel && state.currentNovel.idNovel === updatedNovel.idNovel) {
+            state.currentNovel = updatedNovel;
           }
         } else {
-          console.warn("Update novel fulfilled but payload is not a valid novel object:", action.payload);
+          console.warn("Update novel fulfilled nhưng payload không hợp lệ:", action.payload);
         }
       })
       .addCase(updateNovel.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
       })
-      // --- deleteNovel ---
+
+      // deleteNovel
       .addCase(deleteNovel.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
       .addCase(deleteNovel.fulfilled, (state, action) => {
         state.loading = false;
-        state.novels = state.novels.filter((novel) => novel.idNovel !== action.payload); // action.payload là idNovel
-        if (state.currentNovel && state.currentNovel.idNovel === action.payload) {
-          state.currentNovel = null;
+        const deletedNovelId = action.payload; // action.payload là idNovel đã xóa
+        state.novels = state.novels.filter((novel) => novel.idNovel !== deletedNovelId);
+        if (state.currentNovel && state.currentNovel.idNovel === deletedNovelId) {
+          state.currentNovel = null; // Xóa currentNovel nếu nó là truyện vừa bị xóa
         }
       })
       .addCase(deleteNovel.rejected, (state, action) => {
@@ -226,4 +239,11 @@ const novelSlice = createSlice({
 });
 
 export const { clearCurrentNovel, setCurrentNovelFromList } = novelSlice.actions;
+
+// Selectors (tùy chọn, có thể không cần thay đổi nhiều)
+export const selectAllNovels = (state) => state.novels.novels;
+export const selectCurrentNovel = (state) => state.novels.currentNovel;
+export const selectNovelsLoading = (state) => state.novels.loading;
+export const selectNovelsError = (state) => state.novels.error;
+
 export default novelSlice.reducer;

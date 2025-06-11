@@ -7,7 +7,7 @@ import store from "./redux/store"; // Đường dẫn tới store của bạn
 
 // Import các actions "getAll" từ các slice của bạn
 import { getAllNovels } from './redux/novelSlice'; // Điều chỉnh đường dẫn nếu cần
-import { getAllAuthors } from './redux/authorSlice'; // Điều chỉnh đường dẫn
+// import { getAllAuthors } from './redux/authorSlice'; // Điều chỉnh đường dẫn
 import { getAllCategories } from './redux/categorySlice'; // Điều chỉnh đường dẫn
 import {loadUserFromStorage} from './redux/userSlice'; // Điều chỉnh đường dẫn
 // Import các component trang
@@ -36,10 +36,10 @@ const AppContent = () => {
       dispatch(getAllNovels());
     }
     dispatch(loadUserFromStorage());
-    if (!authorsLoading && (!authors || authors.length === 0)) {
-      console.log("App.jsx: Fetching all authors for the first time.");
-      dispatch(getAllAuthors());
-    }
+    // if (!authorsLoading && (!authors || authors.length === 0)) {
+    //   console.log("App.jsx: Fetching all authors for the first time.");
+    //   dispatch(getAllAuthors());
+    // }
 
     if (!categoriesLoading && (!categories || categories.length === 0)) {
       console.log("App.jsx: Fetching all categories for the first time.");
