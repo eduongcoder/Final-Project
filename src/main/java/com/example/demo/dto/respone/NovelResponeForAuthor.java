@@ -1,8 +1,6 @@
 package com.example.demo.dto.respone;
 
-import java.util.Set;
 
-import com.example.demo.entity.Author;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -15,7 +13,7 @@ import lombok.experimental.FieldDefaults;
 @NoArgsConstructor
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class NovelRespone {
+public class NovelResponeForAuthor {
 	String idNovel;
 	String publicIDNovel;
 	String nameNovel;
@@ -24,10 +22,4 @@ public class NovelRespone {
 	String rating;
 	String statusNovel;
 	String imageNovel;
-  
-	Set<AuthorResponeForNovel> authors ;
-	
-	Set<CategoryRespone> categories;
-	
-//	Set<ChapterRespone> chapters; 
 }

@@ -1,13 +1,7 @@
 package com.example.demo.dto.respone;
 
 import java.time.LocalDate;
-import java.util.HashSet;
-import java.util.Set;
 
-import com.example.demo.entity.Author;
-import com.example.demo.entity.Novel;
-
-import jakarta.persistence.ManyToMany;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -20,17 +14,16 @@ import lombok.experimental.FieldDefaults;
 @NoArgsConstructor
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class AuthorRespone {
+public class AuthorResponeForNovel {
 	String idAuthor;
 
 	String publicIDAuthor;
 	String nameAuthor;
-	String descriptionAuthor; 
+	String descriptionAuthor;
 	String nationalityAuthor;
 	LocalDate dobAuthor;
 	LocalDate dodAuthor;
 	String genderAuthor;
 	String imageAuthor;
- 
-	Set<NovelResponeForAuthor> novels ;
+
 }

@@ -1,4 +1,4 @@
-package com.example.demo.dto.request;
+package com.example.demo.dto.respone;
 
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -9,13 +9,11 @@ import lombok.experimental.FieldDefaults;
 
 @Data
 @Builder
-@NoArgsConstructor
 @AllArgsConstructor
+@NoArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class ChapterCreationRequest {
-
-	String titleChapter;
-
-
-	String novel;
+public class ChapterData {
+	String title;
+	String content;
+	String sourceUrl;
 }

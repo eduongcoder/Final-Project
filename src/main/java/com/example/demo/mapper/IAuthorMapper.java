@@ -13,5 +13,5 @@ public interface IAuthorMapper {
 	Author toAuthor(AuthorCreationRequest request);
 	
 	Author toAuthorUpdate(AuthorUpdateRequest request);
-	AuthorRespone toAuthorRespone(Author author);
+	AuthorRespone toAuthorRespone(Author author); 
 }

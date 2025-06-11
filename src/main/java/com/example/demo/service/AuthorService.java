@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -12,6 +13,7 @@ import com.example.demo.dto.request.AuthorCreationRequest;
 import com.example.demo.dto.request.AuthorUpdateRequest;
 import com.example.demo.dto.respone.AuthorRespone;
 import com.example.demo.dto.respone.NovelRespone;
+import com.example.demo.dto.respone.NovelResponeForAuthor;
 import com.example.demo.dto.respone.UploadFileRespone;
 import com.example.demo.entity.Author;
 import com.example.demo.entity.Novel;
@@ -39,14 +41,35 @@ public class AuthorService {
 	INovelMapper novelMapper;
 
 	public List<AuthorRespone> getAll() {
-		return authorRepository.findAll().stream().map(t -> authorMapper.toAuthorRespone(t)).toList();
+	    List<Author> authors = authorRepository.findAll();
+
+	    return authors.stream().map(author -> {
+	        AuthorRespone authorResponse = authorMapper.toAuthorRespone(author);
+
+	        Set<Novel> novels = authorRepository.getNovelByIdAuthor(author.getIdAuthor());
+
+	        Set<NovelResponeForAuthor> novelDTOs = novels.stream()
+	                .map(novel -> NovelResponeForAuthor.builder()
+	                        .idNovel(novel.getIdNovel())
+	                        .nameNovel(novel.getNameNovel())
+	                        .imageNovel(novel.getImageNovel())
+	                        .build())
+	                .collect(Collectors.toSet());
+
+	        authorResponse.setNovels(novelDTOs); 
+	        return authorResponse;
+	    }).toList();
 	}
+
 
 	public AuthorRespone getAuthor(String idAuthor) {
 		Author author = authorRepository.findById(idAuthor).get();
 		Set<Novel> novels = authorRepository.getNovelByIdAuthor(idAuthor);
 		AuthorRespone authorRespone = authorMapper.toAuthorRespone(author);
-		authorRespone.setNovels(novels);
+
+		log.info(novels.isEmpty() + "haha");
+//		Set<NovelResponeForAuthor> novelResponeForAuthors=novels.stream().map(t -> )
+//		authorRespone.setNovels(novels);
 		return authorRespone;
 	}
 
@@ -77,11 +100,11 @@ public class AuthorService {
 		Set<Novel> novels = new HashSet<>(novelRepository.findAllById(request.getNovels()));
 
 		if (file != null && !file.isEmpty()) {
-			
-			if (author.getPublicIDAuthor() !=null &&!author.getPublicIDAuthor().isEmpty()) {
+
+			if (author.getPublicIDAuthor() != null && !author.getPublicIDAuthor().isEmpty()) {
 				uploadFileService.deleteImage(author.getPublicIDAuthor());
 			}
-			
+
 			UploadFileRespone uploadFileRespone = uploadFileService.uploadFile(file);
 
 			author.setImageAuthor(uploadFileRespone.getUrl());
@@ -94,8 +117,6 @@ public class AuthorService {
 			novel.getAuthors().add(author);
 			novelRepository.save(novel);
 		}
-
-		
 
 		return authorMapper.toAuthorRespone(author);
 	}

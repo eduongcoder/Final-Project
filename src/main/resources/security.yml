@@ -20,6 +20,8 @@ app:
       - GET:/comment/getAllByChapter/**  
       - GET:/comment/getAllByNovel/**   
       - GET:/novel/**
+      - GET:/api/fetch-html
+      - POST:/api/tts/speak
     permission:
       PROJECT:
         - GET:/project/getAll

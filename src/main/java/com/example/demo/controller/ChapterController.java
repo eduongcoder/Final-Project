@@ -52,7 +52,7 @@ public class ChapterController {
 	@PostMapping(value = "/create", consumes = { "multipart/form-data" })
 	@Operation(summary = "Tạo chương mới", description = "Tạo mới một chương cho truyện, có thể đính kèm file nội dung chương (dạng text).")
 	public ApiRespone<ChapterRespone> createChapter(@RequestPart ChapterCreationRequest request,
-			@RequestParam(required = false) MultipartFile textFile) throws IOException {
+			@RequestParam(required = false) MultipartFile textFile) throws IOException, InterruptedException {
 		return ApiRespone.<ChapterRespone>builder().result(chapterService.createChapter(request, textFile)).build();
 	}
 
