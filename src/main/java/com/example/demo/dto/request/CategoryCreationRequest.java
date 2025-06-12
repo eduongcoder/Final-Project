@@ -17,5 +17,5 @@ import lombok.experimental.FieldDefaults;
 public class CategoryCreationRequest {
 
 	String nameCategory;
-	Set<String> novels;
+
 }

@@ -18,6 +18,6 @@ public class CategoryUpdateRequest {
 
 	String idCategory;
 	String nameCategory;
-	Set<String> novels;
+//	Set<String> novels;
 
 }

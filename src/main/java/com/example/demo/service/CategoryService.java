@@ -42,13 +42,7 @@ public class CategoryService {
 		}
 		Category category = categoryMapper.toCategory(request);
 
-		Set<Novel> novels = new HashSet<>(novelRepository.findAllById(request.getNovels()));
-		 category= categoryRepository.save(category);
-
-		for (Novel novel : novels) {
-			novel.getCategories().add(category);
-			novelRepository.save(novel);
-		}
+		category=categoryRepository.save(category);
 		
 		return categoryMapper.toCategoryRespone(category);
 	}
@@ -71,13 +65,13 @@ public class CategoryService {
 		if (!categoryRepository.existsById(request.getIdCategory())) {
 			throw new AppException(ErrorCode.CATEGORY_NOT_EXISTED);
 		}
-		Set<Novel> novels = new HashSet<>(novelRepository.findAllById(request.getNovels()));
+//		Set<Novel> novels = new HashSet<>(novelRepository.findAllById(request.getNovels()));
 		 category= categoryRepository.save(category);
 
-		for (Novel novel : novels) {
-			novel.getCategories().add(category);
-			novelRepository.save(novel);
-		}
+//		for (Novel novel : novels) {
+//			novel.getCategories().add(category);
+//			novelRepository.save(novel);
+//		}
 		
 		return categoryMapper.toCategoryRespone(category);
 	}
