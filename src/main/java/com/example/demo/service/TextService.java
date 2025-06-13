@@ -65,9 +65,23 @@ public class TextService {
 	        // Quan trọng: Thêm callback_url và truyền vào một body JSON
 	        request.setHeader("callback_url", callbackUrl);
 	        
+	        
+	        logger.info("Text length: {} characters", text.length());
+
+	        if (text.length() > 5000) {
+	            logger.error("Text length exceeds the 5000 character limit!");
+	            // Bạn có thể ném ra một exception ở đây để không gửi request đi
+	            throw new IllegalArgumentException("Text exceeds 5000 character limit.");
+	        }
+	        
+	        String cleanText = text
+	                .replaceAll("<[^>]*>", "") // Xóa các thẻ HTML
+	                .replaceAll("\\s+", " ")   // Thay thế nhiều khoảng trắng bằng một
+	                .trim();                   // Xóa khoảng trắng đầu cuối
+	        
 	     // --- THAY ĐỔI QUAN TRỌNG: GỬI TEXT THÔ ---
 	        // Không dùng JSON body nữa, mà dùng text thô như tài liệu
-	        StringEntity entity = new StringEntity(text, "UTF-8");
+	        StringEntity entity = new StringEntity(cleanText, "UTF-8");
 	        request.setEntity(entity);
 
 	       
