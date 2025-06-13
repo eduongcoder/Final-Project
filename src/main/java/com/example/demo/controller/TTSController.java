@@ -64,65 +64,83 @@ public class TTSController {
 
 	@PostMapping("/speak")
 	public ResponseEntity<?> speak(@RequestBody String text) {
-		// 1. Tạo một ID duy nhất cho request này
-		String requestId = UUID.randomUUID().toString();
+	    // 1. Tạo một ID duy nhất cho request này
+	    String requestId = UUID.randomUUID().toString();
 
-		// 2. Tạo và lưu trạng thái ban đầu vào DB
-		TtsRequest ttsJob = new TtsRequest();
-		ttsJob.setRequestId(requestId);
-		ttsJob.setStatus("PENDING");
-		ttsJob.setCreatedAt(Instant.now());
-		ttsRequestRepository.save(ttsJob);
+	    // 2. Tạo và lưu trạng thái ban đầu vào DB
+	    TtsRequest ttsJob = new TtsRequest();
+	    ttsJob.setRequestId(requestId);
+	    ttsJob.setStatus("PENDING");
+	    ttsJob.setCreatedAt(Instant.now());
+	    ttsRequestRepository.save(ttsJob);
 
-		// 3. Tạo callback URL trỏ về server của chính bạn
-		String callbackUrl = serverBaseUrl + "/api/tts/callback";
+	    // 3. TẠO CALLBACK URL ĐÚNG CÚ PHÁP
+	    String callbackUrl = serverBaseUrl + "/api/tts/callback?requestId=" + requestId;
 
-		// 4. Gọi service để gửi yêu cầu đến FPT.AI (chạy trong một luồng riêng)
-		// Dùng CompletableFuture để không block luồng chính
-		CompletableFuture.runAsync(() -> {
-			try {
-				service.sendToFptAi(text, requestId, callbackUrl);
-				// Cập nhật trạng thái sau khi gửi thành công
-				ttsJob.setStatus("PROCESSING");
-				ttsRequestRepository.save(ttsJob);
-			} catch (Exception e) {
-				logger.error("Failed to send request to FPT.AI for requestId: {}", requestId, e);
-				ttsJob.setStatus("FAILED");
-				ttsJob.setErrorMessage("Failed to initiate TTS process.");
-				ttsRequestRepository.save(ttsJob);
-			}
-		});
+	    // 4. Gọi service để gửi yêu cầu đến FPT.AI (chạy trong một luồng riêng)
+	    CompletableFuture.runAsync(() -> {
+	        try {
+	            service.sendToFptAi(text, callbackUrl);
+	            // Cập nhật trạng thái sau khi gửi thành công
+	            ttsJob.setStatus("PROCESSING");
+	            ttsRequestRepository.save(ttsJob);
+	        } catch (Exception e) {
+	            logger.error("Failed to send request to FPT.AI for requestId: {}", requestId, e);
+	            ttsJob.setStatus("FAILED");
+	            ttsJob.setErrorMessage("Failed to initiate TTS process.");
+	            ttsRequestRepository.save(ttsJob);
+	        }
+	    });
 
-		// 5. Trả về response ngay lập tức cho client
-		Map<String, String> response = Map.of("message", "Your request is being processed.", "status", "PENDING",
-				"requestId", requestId, "status_check_url", "/api/tts/status/" + requestId);
-		return ResponseEntity.accepted().body(response);
+	    // 5. Trả về response ngay lập tức cho client
+	    Map<String, String> response = Map.of(
+	        "message", "Your request is being processed.", 
+	        "status", "PENDING",
+	        "requestId", requestId, 
+	        "status_check_url", "/api/tts/status/" + requestId
+	    );
+	    return ResponseEntity.accepted().body(response);
 	}
 
 	@PostMapping("/callback")
-	public ResponseEntity<Void> handleFptCallback(@RequestBody Map<String, Object> callbackPayload) {
-	    logger.info("Received callback from FPT.AI: {}", callbackPayload);
+	public ResponseEntity<Void> handleFptCallback(
+	        @RequestBody Map<String, Object> callbackPayload, 
+	        @RequestParam("requestId") String requestId) { 
 
-	    // FPT.AI trả về async_link, success, và cả body gốc mà ta đã gửi
-	    // Giả sử body gốc chứa requestId của chúng ta
-	    String requestId = (String) callbackPayload.get("requestId");
-	    boolean success = "true".equalsIgnoreCase(String.valueOf(callbackPayload.get("success")));
+	    logger.info("Received callback for requestId [{}]: {}", requestId, callbackPayload);
+
+	    // Bạn có thể bỏ kiểm tra requestId == null vì @RequestParam mặc định là required,
+	    // nếu thiếu nó sẽ không vào được controller.
 	    
-	    if (requestId == null) {
-	        logger.error("Callback received without a requestId.");
-	        return ResponseEntity.badRequest().build();
-	    }
-
 	    TtsRequest ttsJob = ttsRequestRepository.findById(requestId).orElse(null);
 	    if (ttsJob == null) {
 	        logger.error("Received callback for an unknown requestId: {}", requestId);
 	        return ResponseEntity.badRequest().build();
 	    }
+	    
+	    // Kiểm tra trạng thái của job để tránh xử lý lại một job đã hoàn thành hoặc thất bại
+	    if (!"PROCESSING".equals(ttsJob.getStatus())) {
+	        logger.warn("Received callback for a job that is not in PROCESSING state. Current state: {}. Ignoring.", ttsJob.getStatus());
+	        return ResponseEntity.ok().build(); // Vẫn trả về 200 OK để FPT không retry
+	    }
 
-	    if (success) {
-	        String asyncUrl = (String) callbackPayload.get("async_link"); // Kiểm tra lại tên field
+	    // --- PHẦN THAY ĐỔI CHÍNH ---
+	    // Dựa trên log thực tế, 'error'=0 là thành công.
+	    Integer errorCode = (Integer) callbackPayload.getOrDefault("error", -1);
+	    
+	    if (errorCode == 0) {
+	        // Lấy link từ trường 'async'
+	        String asyncUrl = (String) callbackPayload.get("async");
+
+	        if (asyncUrl == null || asyncUrl.isBlank()) {
+	            logger.error("Callback successful (error=0) but 'async' URL is missing for requestId: {}", requestId);
+	            ttsJob.setStatus("FAILED");
+	            ttsJob.setErrorMessage("Callback successful but async URL was missing.");
+	            ttsRequestRepository.save(ttsJob);
+	            return ResponseEntity.badRequest().build();
+	        }
 	        
-	        // Chạy việc tải file trong một luồng riêng để không block callback
+	        // Chạy việc tải file trong một luồng riêng
 	        CompletableFuture.runAsync(() -> {
 	            try {
 	                String fileName = extractFileName(asyncUrl);
@@ -134,19 +152,20 @@ public class TTSController {
 	                    ttsJob.setAudioFilePath(filePath.toString());
 	                } else {
 	                    ttsJob.setStatus("FAILED");
-	                    ttsJob.setErrorMessage("Failed to download the audio file.");
+	                    ttsJob.setErrorMessage("Failed to download the audio file from async URL.");
 	                }
 	            } catch (Exception e) {
-	                logger.error("Error during file download in callback for requestId: {}", requestId, e);
+	                logger.error("Exception during file download in callback for requestId: {}", requestId, e);
 	                ttsJob.setStatus("FAILED");
-	                ttsJob.setErrorMessage("Exception during file download.");
+	                ttsJob.setErrorMessage("Exception during file download: " + e.getMessage());
 	            }
 	            ttsRequestRepository.save(ttsJob);
 	        });
-	    } else {
-	        String errorMessage = (String) callbackPayload.get("message");
+
+	    } else { // Xử lý khi FPT báo lỗi
+	        String errorMessage = (String) callbackPayload.getOrDefault("message", "Unknown error from FPT.AI");
 	        ttsJob.setStatus("FAILED");
-	        ttsJob.setErrorMessage(errorMessage);
+	        ttsJob.setErrorMessage("FPT.AI Error Code: " + errorCode + " - " + errorMessage);
 	        ttsRequestRepository.save(ttsJob);
 	    }
 

@@ -57,7 +57,7 @@ public class TextService {
 		this.httpClient = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build();
 	}
 	
-	public void sendToFptAi(String text, String requestId, String callbackUrl) {
+	public void sendToFptAi(String text, String callbackUrl) {
 	    try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
 	        HttpPost request = new HttpPost(API_URL);
 	        request.setHeader("api-key", API_KEY);
@@ -65,15 +65,14 @@ public class TextService {
 	        // Quan trọng: Thêm callback_url và truyền vào một body JSON
 	        request.setHeader("callback_url", callbackUrl);
 	        
-	        // Body của request FPT.AI bây giờ nên là một JSON object chứa cả text và requestId
-	        // để chúng ta có thể nhận lại khi callback
-	        Map<String, String> bodyMap = Map.of("text", text, "requestId", requestId);
-	        String jsonBody = new ObjectMapper().writeValueAsString(bodyMap);
-
-	        StringEntity entity = new StringEntity(jsonBody, ContentType.APPLICATION_JSON);
+	     // --- THAY ĐỔI QUAN TRỌNG: GỬI TEXT THÔ ---
+	        // Không dùng JSON body nữa, mà dùng text thô như tài liệu
+	        StringEntity entity = new StringEntity(text, "UTF-8");
 	        request.setEntity(entity);
 
-	        // Gửi request đi, không cần quan tâm nhiều đến response vì chúng ta chờ callback
+	       
+
+	        logger.info("Sending request to FPT.AI with callback: {}", callbackUrl);
 	        try (CloseableHttpResponse response = httpClient.execute(request)) {
 	             String responseBody = EntityUtils.toString(response.getEntity(), "UTF-8");
 	             logger.info("FPT.AI initial response: {}", responseBody);
