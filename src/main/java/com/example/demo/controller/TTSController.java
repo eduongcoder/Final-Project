@@ -130,7 +130,7 @@ public class TTSController {
 	    
 	    if (errorCode == 0) {
 	        // Lấy link từ trường 'async'
-	        String asyncUrl = (String) callbackPayload.get("async");
+	        String asyncUrl = (String) callbackPayload.get("message");
 
 	        if (asyncUrl == null || asyncUrl.isBlank()) {
 	            logger.error("Callback successful (error=0) but 'async' URL is missing for requestId: {}", requestId);
