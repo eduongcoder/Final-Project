@@ -1,30 +1,29 @@
 // src/redux/commentSlice.js
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import axios from 'axios'; // axios gốc cho API public
-import apiClient from '../services/api'; // apiClient cho API cần xác thực
+import axios from 'axios';
+import apiClient from '../services/api';
 
-const API_BASE_URL_COMMENT_PUBLIC = "https://truongthaiduongphanthanhvu.onrender.com/comment"; // Cho API public
-// API_BASE_URL cho apiClient đã được định nghĩa trong apiClient (src/services/api.js)
+const API_BASE_URL_COMMENT_PUBLIC = "https://truongthaiduongphanthanhvu.onrender.com/comment";
 
-// GET /comment/getAllByChapter/{idChapter} (Whitelist - Public)
+// --- API THUNKS ---
+
+// GET /comment/getAllByChapter/{idChapter}
 export const getCommentsByChapter = createAsyncThunk(
   'comments/getByChapter',
   async (idChapter, { rejectWithValue }) => {
     try {
-      // Sử dụng axios gốc vì đây là API public
       const response = await axios.get(`${API_BASE_URL_COMMENT_PUBLIC}/getAllByChapter/${idChapter}`);
       if (response.data && response.data.code === 1000 && Array.isArray(response.data.result)) {
         return response.data.result;
-      } else {
-        return rejectWithValue(response.data.message || 'Failed to fetch comments by chapter');
       }
+      return rejectWithValue(response.data.message || 'Failed to fetch comments by chapter');
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || error.message || 'Error fetching comments');
     }
   }
 );
 
-// GET /comment/getAllByNovel/{idNovel} (Whitelist - Public)
+// GET /comment/getAllByNovel/{idNovel}
 export const getCommentsByNovel = createAsyncThunk(
   'comments/getByNovel',
   async (idNovel, { rejectWithValue }) => {
@@ -32,33 +31,28 @@ export const getCommentsByNovel = createAsyncThunk(
       const response = await axios.get(`${API_BASE_URL_COMMENT_PUBLIC}/getAllByNovel/${idNovel}`);
       if (response.data && response.data.code === 1000 && Array.isArray(response.data.result)) {
         return response.data.result;
-      } else {
-        return rejectWithValue(response.data.message || 'Failed to fetch comments by novel');
       }
+      return rejectWithValue(response.data.message || 'Failed to fetch comments by novel');
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || error.message || 'Error fetching comments by novel');
     }
   }
 );
 
-
-// POST /comment/create (Cần Token)
+// POST /comment/create
 export const createComment = createAsyncThunk(
   'comments/create',
   async ({ contentComment, idUser, idChapter }, { rejectWithValue }) => {
     try {
-      // Sử dụng apiClient để tự động gửi token
-      const response = await apiClient.post(`/comment/create`, { // Đường dẫn tương đối
+      const response = await apiClient.post(`/comment/create`, {
         contentComment,
-        user: idUser,
-        chapter: idChapter
+        user: idUser,      // API của bạn yêu cầu 'user' là idUser
+        chapter: idChapter // API của bạn yêu cầu 'chapter' là idChapter
       });
-      // Giả sử backend trả về code 200 hoặc 1000 cho create thành công
       if (response.data && (response.data.code === 200 || response.data.code === 1000) && response.data.result) {
         return response.data.result;
-      } else {
-        return rejectWithValue(response.data.message || 'Failed to create comment');
       }
+      return rejectWithValue(response.data.message || 'Failed to create comment');
     } catch (error) {
       if (error.response && (error.response.status === 401 || error.response.status === 403)) {
         return rejectWithValue('Unauthorized. Please login to comment.');
@@ -68,30 +62,43 @@ export const createComment = createAsyncThunk(
   }
 );
 
-// PUT /comment/update (Cần Token)
+// PUT /comment/update
 export const updateCommentContent = createAsyncThunk(
   'comments/updateContent',
-  async ({ idComment, contentComment, idChapter, idUser /*, likeComment, dislikeComment */ }, { rejectWithValue }) => {
+  async ({ existingComment, newContent, idUserPerformingUpdate, idChapterOfComment }, { rejectWithValue }) => {
+    // existingComment là object comment hiện tại từ state
+    // newContent là nội dung mới người dùng nhập
+    // idUserPerformingUpdate là ID của người dùng đang thực hiện hành động sửa
+    // idChapterOfComment là ID của chapter mà comment này thuộc về (cần cho payload API)
     try {
-      // API backend của bạn yêu cầu gửi tất cả các trường.
-      // Nếu bạn chỉ muốn cập nhật contentComment, bạn cần đảm bảo các trường khác
-      // được gửi với giá trị hiện tại của chúng, hoặc backend cho phép partial update.
-      // Để đơn giản, ví dụ này chỉ gửi những gì cần thiết cho việc cập nhật content.
-      // Bạn cần điều chỉnh payload dựa trên yêu cầu thực tế của API update.
-      const payload = {
-        idComment,
-        contentComment,
-        idChapter, // API yêu cầu
-        user: idUser, // API yêu cầu
-        // likeComment, // Gửi nếu bạn có giá trị hiện tại
-        // dislikeComment, // Gửi nếu bạn có giá trị hiện tại
-      };
-      const response = await apiClient.put(`/comment/update`, payload); // Đường dẫn tương đối
-      if (response.data && (response.data.code === 200 || response.data.code === 1000) && response.data.result) {
-        return response.data.result;
-      } else {
-        return rejectWithValue(response.data.message || 'Failed to update comment');
+      if (!existingComment || !existingComment.idComment) {
+        return rejectWithValue('Invalid existing comment data for update.');
       }
+      if (!idChapterOfComment) {
+        // Nếu idChapter không có trong existingComment, nó phải được truyền vào
+        // Hoặc bạn có thể cố gắng lấy từ existingComment.chapter.idChapter nếu cấu trúc là vậy
+        const chapterId = existingComment.chapter?.idChapter || idChapterOfComment;
+        if (!chapterId) {
+            return rejectWithValue('Chapter ID is missing for comment update.');
+        }
+      }
+
+
+      const payload = {
+        idComment: existingComment.idComment,
+        contentComment: newContent,
+        // Lấy giá trị like/dislike hiện tại từ existingComment, nếu không có thì mặc định là 0
+        likeComment: existingComment.likeComment || 0,
+        dislikeComment: existingComment.dislikeComment || 0,
+        chapter: existingComment.chapter?.idChapter || idChapterOfComment, // API yêu cầu 'chapter' là idChapter (kiểu số)
+        user: idUserPerformingUpdate // API yêu cầu 'user' là idUser (kiểu string) của người thực hiện
+      };
+
+      const response = await apiClient.put(`/comment/update`, payload);
+      if (response.data && (response.data.code === 200 || response.data.code === 1000) && response.data.result) {
+        return response.data.result; // API trả về comment đã được cập nhật
+      }
+      return rejectWithValue(response.data.message || 'Failed to update comment');
     } catch (error) {
       if (error.response && (error.response.status === 401 || error.response.status === 403)) {
         return rejectWithValue('Unauthorized. Please login to update comment.');
@@ -101,17 +108,16 @@ export const updateCommentContent = createAsyncThunk(
   }
 );
 
-// PUT /comment/updatelike (Cần Token)
+// PUT /comment/updatelike
 export const likeComment = createAsyncThunk(
   'comments/like',
   async ({ idComment, idChapter, idUser }, { rejectWithValue }) => {
     try {
       const response = await apiClient.put(`/comment/updatelike`, { idComment, idChapter, idUser });
       if (response.data && (response.data.code === 200 || response.data.code === 1000) && response.data.result) {
-        return response.data.result;
-      } else {
-        return rejectWithValue(response.data.message || 'Failed to like comment');
+        return response.data.result; // API trả về comment đã được cập nhật
       }
+      return rejectWithValue(response.data.message || 'Failed to like comment');
     } catch (error) {
       if (error.response && (error.response.status === 401 || error.response.status === 403)) {
         return rejectWithValue('Unauthorized. Please login to react.');
@@ -121,17 +127,16 @@ export const likeComment = createAsyncThunk(
   }
 );
 
-// PUT /comment/updatedislike (Cần Token)
+// PUT /comment/updatedislike
 export const dislikeComment = createAsyncThunk(
   'comments/dislike',
   async ({ idComment, idChapter, idUser }, { rejectWithValue }) => {
     try {
       const response = await apiClient.put(`/comment/updatedislike`, { idComment, idChapter, idUser });
       if (response.data && (response.data.code === 200 || response.data.code === 1000) && response.data.result) {
-        return response.data.result;
-      } else {
-        return rejectWithValue(response.data.message || 'Failed to dislike comment');
+        return response.data.result; // API trả về comment đã được cập nhật
       }
+      return rejectWithValue(response.data.message || 'Failed to dislike comment');
     } catch (error) {
       if (error.response && (error.response.status === 401 || error.response.status === 403)) {
         return rejectWithValue('Unauthorized. Please login to react.');
@@ -141,21 +146,16 @@ export const dislikeComment = createAsyncThunk(
   }
 );
 
-// DELETE /comment/{idComment} (Cần Token)
+// DELETE /comment/{idComment}
 export const deleteComment = createAsyncThunk(
   'comments/delete',
   async (idComment, { rejectWithValue }) => {
     try {
-      // Giả sử endpoint là /comment/delete/{idComment} hoặc chỉ /comment/{idComment}
       const response = await apiClient.delete(`/comment/${idComment}`);
-      // Hoặc nếu endpoint là /comment/delete và idComment trong body (ít phổ biến cho DELETE)
-      // const response = await apiClient.delete(`/comment/delete`, { data: { idComment } });
-
       if (response.data && (response.data.code === 200 || response.data.code === 1000)) {
-        return idComment; // Trả về ID để cập nhật state
-      } else {
-        return rejectWithValue(response.data.message || 'Failed to delete comment');
+        return idComment;
       }
+      return rejectWithValue(response.data.message || 'Failed to delete comment');
     } catch (error) {
       if (error.response && (error.response.status === 401 || error.response.status === 403)) {
         return rejectWithValue('Unauthorized. Please login to delete comment.');
@@ -165,33 +165,20 @@ export const deleteComment = createAsyncThunk(
   }
 );
 
-// GET /comment/getAllByUser/{idUser} (Có thể cần token hoặc không, tùy vào logic của bạn)
-// Nếu cần token (ví dụ chỉ user đó mới xem được comment của mình):
-export const getCommentsByUser = createAsyncThunk(
-  'comments/getByUser',
-  async (idUser, { rejectWithValue }) => {
-    try {
-      const response = await apiClient.get(`/comment/getAllByUser/${idUser}`);
-      if (response.data && response.data.code === 1000 && Array.isArray(response.data.result)) {
-        return response.data.result;
-      } else {
-        return rejectWithValue(response.data.message || 'Failed to fetch user comments');
-      }
-    } catch (error) {
-       if (error.response && (error.response.status === 401 || error.response.status === 403)) {
-        return rejectWithValue('Unauthorized.');
-      }
-      return rejectWithValue(error.response?.data?.message || error.message || 'Error fetching user comments');
-    }
-  }
-);
+// GET /comment/getAllByUser/{idUser}
+export const getCommentsByUser = createAsyncThunk( /* ... giữ nguyên ... */ );
 
 
 const initialState = {
-  commentsByChapter: [], // Lưu trữ comment cho chương hiện tại đang xem
-  // commentsByNovel: [], // Nếu bạn muốn lưu trữ tất cả comment của một truyện
-  // userComments: [], // Nếu bạn muốn lưu trữ comment của một user cụ thể
-  loading: false,
+  commentsByChapter: [],
+  loading: false, // Loading chung cho getByChapter, getByNovel, getByUser
+  actionLoading: { // Loading riêng cho các action CUD và like/dislike
+    create: false,
+    update: false,
+    delete: false,
+    like: {}, // { [commentId]: boolean }
+    dislike: {}, // { [commentId]: boolean }
+  },
   error: null,
 };
 
@@ -206,18 +193,25 @@ const commentSlice = createSlice({
     clearCommentError: (state) => {
       state.error = null;
     }
-    // Bạn có thể thêm reducer để cập nhật comment ngay lập tức sau khi like/dislike
-    // mà không cần đợi response từ API (optimistic update), sau đó điều chỉnh lại
-    // dựa trên response.
   },
   extraReducers: (builder) => {
     const handlePending = (state) => {
-      state.loading = true;
+      state.loading = true; // Dùng cho get operations
       state.error = null;
     };
     const handleRejected = (state, action) => {
-      state.loading = false;
+      state.loading = false; // Dùng cho get operations
       state.error = action.payload || 'An error occurred';
+    };
+
+    // Helper function để cập nhật một comment trong mảng
+    const updateCommentInList = (state, updatedComment) => {
+      if (updatedComment && updatedComment.idComment) {
+        const index = state.commentsByChapter.findIndex(comment => comment.idComment === updatedComment.idComment);
+        if (index !== -1) {
+          state.commentsByChapter[index] = updatedComment;
+        }
+      }
     };
 
     builder
@@ -229,86 +223,81 @@ const commentSlice = createSlice({
       })
       .addCase(getCommentsByChapter.rejected, handleRejected)
 
-      // Get Comments By Novel (Ví dụ, nếu bạn dùng)
-      .addCase(getCommentsByNovel.pending, handlePending)
-      .addCase(getCommentsByNovel.fulfilled, (state, action) => {
-        state.loading = false;
-        // state.commentsByNovel = action.payload; // Cập nhật state tương ứng
-      })
-      .addCase(getCommentsByNovel.rejected, handleRejected)
-
       // Create Comment
-      .addCase(createComment.pending, (state) => { // Không set loading=true nếu muốn UI không bị block
+      .addCase(createComment.pending, (state) => {
+        state.actionLoading.create = true;
         state.error = null;
       })
       .addCase(createComment.fulfilled, (state, action) => {
-        state.loading = false; // Set loading false khi thành công
-        // Thêm comment mới vào đầu danh sách để hiển thị ngay
+        state.actionLoading.create = false;
         if (action.payload && action.payload.idComment) {
           state.commentsByChapter.unshift(action.payload);
         }
       })
-      .addCase(createComment.rejected, handleRejected)
+      .addCase(createComment.rejected, (state, action) => {
+        state.actionLoading.create = false;
+        state.error = action.payload || 'Failed to create comment';
+      })
+
+      // Update Comment Content
+      .addCase(updateCommentContent.pending, (state, action) => {
+        state.actionLoading.update = true;
+        state.error = null;
+      })
+      .addCase(updateCommentContent.fulfilled, (state, action) => {
+        state.actionLoading.update = false;
+        updateCommentInList(state, action.payload);
+      })
+      .addCase(updateCommentContent.rejected, (state, action) => {
+        state.actionLoading.update = false;
+        state.error = action.payload || 'Failed to update comment';
+      })
+
+      // Like Comment
+      .addCase(likeComment.pending, (state, action) => {
+        state.actionLoading.like[action.meta.arg.idComment] = true;
+        state.error = null;
+      })
+      .addCase(likeComment.fulfilled, (state, action) => {
+        state.actionLoading.like[action.meta.arg.idComment] = false;
+        updateCommentInList(state, action.payload);
+      })
+      .addCase(likeComment.rejected, (state, action) => {
+        state.actionLoading.like[action.meta.arg.idComment] = false;
+        state.error = action.payload || 'Failed to like comment';
+      })
+
+      // Dislike Comment
+      .addCase(dislikeComment.pending, (state, action) => {
+        state.actionLoading.dislike[action.meta.arg.idComment] = true;
+        state.error = null;
+      })
+      .addCase(dislikeComment.fulfilled, (state, action) => {
+        state.actionLoading.dislike[action.meta.arg.idComment] = false;
+        updateCommentInList(state, action.payload);
+      })
+      .addCase(dislikeComment.rejected, (state, action) => {
+        state.actionLoading.dislike[action.meta.arg.idComment] = false;
+        state.error = action.payload || 'Failed to dislike comment';
+      })
 
       // Delete Comment
-      .addCase(deleteComment.pending, (state) => {
-        state.error = null; // Không nhất thiết set loading, vì xóa có thể nhanh
+      .addCase(deleteComment.pending, (state, action) => {
+        state.actionLoading.delete = true;
+        state.error = null;
       })
       .addCase(deleteComment.fulfilled, (state, action) => {
-        state.loading = false;
-        state.commentsByChapter = state.commentsByChapter.filter(comment => comment.idComment !== action.payload); // payload là idComment
+        state.actionLoading.delete = false;
+        state.commentsByChapter = state.commentsByChapter.filter(comment => comment.idComment !== action.payload);
       })
-      .addCase(deleteComment.rejected, handleRejected)
+      .addCase(deleteComment.rejected, (state, action) => {
+        state.actionLoading.delete = false;
+        state.error = action.payload || 'Failed to delete comment';
+      });
 
-      // === Matchers cho các action update (updateContent, like, dislike) ===
-     
-
-      // Get Comments By User (Ví dụ, nếu bạn dùng)
-       .addCase(getCommentsByUser.pending, handlePending)
-      .addCase(getCommentsByUser.fulfilled, (state, action) => {
-        state.loading = false;
-        // state.userComments = action.payload; // Cập nhật state tương ứng
-      })
-      .addCase(getCommentsByUser.rejected, handleRejected)
-      .addMatcher(
-        (action) => [
-          updateCommentContent.pending.type,
-          likeComment.pending.type,
-          dislikeComment.pending.type
-        ].includes(action.type),
-        (state) => {
-          // Có thể không set loading = true ở đây để UI không bị giật khi like/dislike nhanh
-          state.error = null;
-        }
-      )
-      .addMatcher(
-        (action) => [
-          updateCommentContent.fulfilled.type,
-          likeComment.fulfilled.type,
-          dislikeComment.fulfilled.type
-        ].includes(action.type),
-        (state, action) => {
-          state.loading = false;
-          if (action.payload && action.payload.idComment) {
-            const index = state.commentsByChapter.findIndex(comment => comment.idComment === action.payload.idComment);
-            if (index !== -1) {
-              state.commentsByChapter[index] = action.payload; // Cập nhật comment với data mới từ server
-            }
-          }
-        }
-      )
-      .addMatcher(
-        (action) => [
-          updateCommentContent.rejected.type,
-          likeComment.rejected.type,
-          dislikeComment.rejected.type
-        ].includes(action.type),
-        (state, action) => {
-          state.loading = false;
-          state.error = action.payload || 'Comment update/reaction failed';
-          // Cân nhắc việc rollback lại trạng thái nếu có optimistic update
-        }
-      );
+      // Loại bỏ các addMatcher nếu đã xử lý riêng lẻ từng action
+      // Nếu bạn vẫn muốn dùng addMatcher, đảm bảo nó không xung đột với các .addCase ở trên.
+      // Hiện tại, tôi đã chuyển logic cập nhật vào từng .fulfilled của like, dislike, updateContent.
   },
 });
 

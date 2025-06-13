@@ -1,5 +1,5 @@
 // src/components/ChapterComments.jsx
-import React, { useEffect, useState, useRef } from 'react'; // Thêm useRef
+import React, { useEffect, useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import {
@@ -10,8 +10,8 @@ import {
   dislikeComment,
   clearComments,
   clearCommentError,
-  updateCommentContent // Sẽ dùng cho chức năng sửa
-} from '../redux/commentSlice';
+  updateCommentContent
+} from '../redux/commentSlice'; // Đảm bảo đường dẫn đúng
 import {
     Send as LucideSend,
     ThumbsUp as LucideThumbsUp,
@@ -19,25 +19,46 @@ import {
     Trash2 as LucideTrash,
     Edit3 as LucideEdit,
     Loader2 as LucideSpinner,
-    MoreVertical as LucideMoreVertical // Icon ba chấm
+    MoreVertical as LucideMoreVertical
 } from 'lucide-react';
 
-const ChapterComments = ({ chapterId, novelId }) => { // Bỏ currentUserId vì có thể lấy từ currentUser
+const formatCommentDate = (dateArray) => {
+  if (!dateArray || dateArray.length < 6) return ''; // Trả về chuỗi rỗng nếu không có ngày
+  try {
+    const [year, month, day, hour, minute, second] = dateArray;
+    const date = new Date(year, month - 1, day, hour, minute, second);
+    // Check if date is valid
+    if (isNaN(date.getTime())) {
+        return 'Thời gian không hợp lệ';
+    }
+    return date.toLocaleString('vi-VN', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  } catch (e) {
+    console.error("Error formatting date:", e, dateArray);
+    return 'Không rõ thời gian';
+  }
+};
+
+
+const ChapterComments = ({ chapterId, novelId }) => {
   const dispatch = useDispatch();
   const { commentsByChapter, loading, error } = useSelector((state) => state.comments);
-  const currentUser = useSelector((state) => state.user.currentUser); // Lấy thông tin người dùng hiện tại
+  const currentUser = useSelector((state) => state.user.currentUser);
 
   const [newComment, setNewComment] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // State để quản lý dropdown menu của từng comment
   const [openDropdownId, setOpenDropdownId] = useState(null);
-  // State để quản lý việc sửa comment
-  const [editingComment, setEditingComment] = useState(null); // { idComment: string, contentComment: string }
+  const [editingComment, setEditingComment] = useState(null);
   const [editedContent, setEditedContent] = useState('');
   const [isUpdating, setIsUpdating] = useState(false);
 
-  const dropdownRef = useRef(null); // Ref cho dropdown để xử lý click outside
+  const dropdownRefs = useRef({});
 
   useEffect(() => {
     if (chapterId) {
@@ -48,19 +69,20 @@ const ChapterComments = ({ chapterId, novelId }) => { // Bỏ currentUserId vì 
     };
   }, [dispatch, chapterId]);
 
-  // Xử lý click outside để đóng dropdown
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setOpenDropdownId(null);
+      if (openDropdownId) {
+        const currentDropdownRef = dropdownRefs.current[openDropdownId];
+        if (currentDropdownRef && !currentDropdownRef.contains(event.target)) {
+          setOpenDropdownId(null);
+        }
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, [dropdownRef]);
-
+  }, [openDropdownId]);
 
   const handleSubmitComment = async (e) => {
     e.preventDefault();
@@ -74,37 +96,64 @@ const ChapterComments = ({ chapterId, novelId }) => { // Bỏ currentUserId vì 
         idChapter: chapterId
       })).unwrap();
       setNewComment('');
-    } catch (err) { console.error("Failed to submit comment:", err); }
+    } catch (err) { console.error("Lỗi khi gửi bình luận:", err); }
     finally { setIsSubmitting(false); }
   };
 
   const handleDeleteComment = async (commentId) => {
-    if (window.confirm("Bạn có chắc muốn xóa bình luận này?")) {
+    // QUAN TRỌNG: Kiểm tra quyền xóa dựa trên ID người dùng khi backend trả về
+    // Hiện tại, chỉ có thể dựa vào userName (không an toàn) hoặc user hiện tại phải là admin
+    const commentToDelete = commentsByChapter.find(c => c.idComment === commentId);
+    if (!commentToDelete) return;
+
+    // TODO: Thay thế điều kiện này khi backend trả về idUser trong comment object
+    const canDelete = currentUser && (currentUser.userNameUser === commentToDelete.userName /* || currentUser.role === 'ADMIN' */);
+
+    if (!canDelete) {
+        alert("Bạn không có quyền xóa bình luận này.");
+        setOpenDropdownId(null);
+        return;
+    }
+
+    if (window.confirm("Bạn có chắc muốn xóa bình luận này không?")) {
       try {
         await dispatch(deleteComment(commentId)).unwrap();
-        setOpenDropdownId(null); // Đóng dropdown sau khi xóa
-      } catch (err) { console.error("Failed to delete comment", err); }
+        setOpenDropdownId(null);
+      } catch (err) { console.error("Lỗi khi xóa bình luận:", err); }
     }
   };
 
-  const handleLike = async (commentId) => {
-    if (!currentUser?.idUser || !chapterId) return;
+  const handleLike = async (comment) => {
+    if (!currentUser?.idUser || !chapterId) {
+      alert("Vui lòng đăng nhập để thích bình luận.");
+      return;
+    }
     try {
-      await dispatch(likeComment({ idComment, idChapter, idUser: currentUser.idUser })).unwrap();
-    } catch (err) { console.error("Failed to like comment", err); }
+      await dispatch(likeComment({ idComment: comment.idComment, idChapter: chapterId, idUser: currentUser.idUser })).unwrap();
+    } catch (err) { console.error("Lỗi khi thích bình luận:", err); }
   };
 
-  const handleDislike = async (commentId) => {
-    if (!currentUser?.idUser || !chapterId) return;
+  const handleDislike = async (comment) => {
+    if (!currentUser?.idUser || !chapterId) {
+      alert("Vui lòng đăng nhập để không thích bình luận.");
+      return;
+    }
     try {
-      await dispatch(dislikeComment({ idComment, idChapter, idUser: currentUser.idUser })).unwrap();
-    } catch (err) { console.error("Failed to dislike comment", err); }
+      await dispatch(dislikeComment({ idComment: comment.idComment, idChapter: chapterId, idUser: currentUser.idUser })).unwrap();
+    } catch (err) { console.error("Lỗi khi không thích bình luận:", err); }
   };
 
-  const handleEditComment = (comment) => {
+  const handleStartEdit = (comment) => {
+    // Tương tự handleDeleteComment, cần kiểm tra quyền dựa trên idUser khi có
+    const canEdit = currentUser && (currentUser.userNameUser === comment.userName /* || currentUser.role === 'ADMIN' */);
+    if (!canEdit) {
+        alert("Bạn không có quyền sửa bình luận này.");
+        setOpenDropdownId(null);
+        return;
+    }
     setEditingComment(comment);
     setEditedContent(comment.contentComment);
-    setOpenDropdownId(null); // Đóng dropdown
+    setOpenDropdownId(null);
   };
 
   const handleCancelEdit = () => {
@@ -114,24 +163,30 @@ const ChapterComments = ({ chapterId, novelId }) => { // Bỏ currentUserId vì 
 
   const handleUpdateComment = async (e) => {
     e.preventDefault();
-    if (!editedContent.trim() || !editingComment) return;
+    if (!editedContent.trim() || !editingComment || !currentUser?.idUser) return;
+
     setIsUpdating(true);
     try {
+      // API updateCommentContent của bạn cần idChapter và idUser trong payload
       await dispatch(updateCommentContent({
         idComment: editingComment.idComment,
         contentComment: editedContent,
-        idChapter: chapterId, // API của bạn yêu cầu idChapter và user
-        idUser: currentUser.idUser
+        idChapter: chapterId,
+        idUser: currentUser.idUser // Gửi idUser của người đang thực hiện hành động
       })).unwrap();
-      handleCancelEdit(); // Đóng form sửa
+      handleCancelEdit();
     } catch (err) {
-      console.error("Failed to update comment", err);
-      // Hiển thị lỗi cho người dùng nếu cần
+      console.error("Lỗi khi cập nhật bình luận:", err);
     } finally {
       setIsUpdating(false);
     }
   };
 
+  const assignDropdownRef = (el, commentId) => {
+    if (el) {
+      dropdownRefs.current[commentId] = el;
+    }
+  };
 
   return (
     <div className="mt-8 bg-gray-800 p-4 sm:p-6 rounded-lg shadow-md">
@@ -141,7 +196,6 @@ const ChapterComments = ({ chapterId, novelId }) => { // Bỏ currentUserId vì 
 
       {currentUser ? (
         <form onSubmit={handleSubmitComment} className="mb-6">
-          {/* ... Form tạo comment ... */}
           <textarea
             className="w-full p-3 bg-gray-700 text-gray-200 border border-gray-600 rounded-md focus:ring-2 focus:ring-sky-500 focus:border-sky-500 placeholder-gray-500 resize-none"
             rows="3"
@@ -151,7 +205,7 @@ const ChapterComments = ({ chapterId, novelId }) => { // Bỏ currentUserId vì 
             required
             disabled={isSubmitting}
           />
-          {error && typeof error === 'object' && error.from === 'create' && <p className="text-red-500 text-xs mt-1">{error.message}</p>}
+          {error && typeof error === 'string' && <p className="text-red-500 text-xs mt-1">{error}</p>}
           <button
             type="submit"
             disabled={isSubmitting || !newComment.trim()}
@@ -170,19 +224,18 @@ const ChapterComments = ({ chapterId, novelId }) => { // Bỏ currentUserId vì 
           <LucideSpinner size={24} className="animate-spin inline mr-2" /> Đang tải bình luận...
         </div>
       )}
-      {!loading && (!commentsByChapter || commentsByChapter.length === 0) && !error && (
+      {!loading && commentsByChapter && commentsByChapter.length === 0 && !error && (
         <p className="text-gray-500 text-center py-4">Chưa có bình luận nào cho chương này.</p>
       )}
-      {error && (!commentsByChapter || commentsByChapter.length === 0) && typeof error === 'object' && error.from === 'fetch' && (
-         <p className="text-red-500 text-center py-4">{error.message}</p>
+      {error && typeof error === 'string' && (!commentsByChapter || commentsByChapter.length === 0) && (
+         <p className="text-red-500 text-center py-4">{error}</p>
       )}
 
 
       <div className="space-y-4">
         {commentsByChapter && commentsByChapter.map((comment) => (
           editingComment && editingComment.idComment === comment.idComment ? (
-            // Form sửa comment
-            <form key={`edit-${comment.idComment}`} onSubmit={handleUpdateComment} className="bg-gray-700 p-3 rounded-md shadow">
+            <form key={`edit-${comment.idComment}`} onSubmit={handleUpdateComment} className="bg-gray-750 p-3 rounded-md shadow border border-sky-500">
                 <textarea
                     className="w-full p-3 bg-gray-600 text-gray-100 border border-gray-500 rounded-md focus:ring-2 focus:ring-sky-500 focus:border-sky-500 placeholder-gray-400 resize-none"
                     rows="3"
@@ -191,47 +244,52 @@ const ChapterComments = ({ chapterId, novelId }) => { // Bỏ currentUserId vì 
                     required
                     disabled={isUpdating}
                 />
-                {/* Hiển thị lỗi update nếu có */}
                 <div className="mt-2 flex items-center space-x-2">
                     <button
                         type="submit"
                         disabled={isUpdating || !editedContent.trim()}
-                        className="px-3 py-1.5 bg-sky-600 hover:bg-sky-700 text-white text-xs font-semibold rounded-md transition-colors disabled:opacity-60"
+                        className="px-3 py-1.5 bg-sky-600 hover:bg-sky-700 text-white text-xs font-semibold rounded-md transition-colors disabled:opacity-60 flex items-center"
                     >
-                        {isUpdating ? <LucideSpinner size={16} className="animate-spin mr-1.5" /> : null}
-                        Lưu
+                        {isUpdating && <LucideSpinner size={14} className="animate-spin mr-1.5" />}
+                        Lưu thay đổi
                     </button>
                     <button
                         type="button"
                         onClick={handleCancelEdit}
-                        className="px-3 py-1.5 bg-gray-500 hover:bg-gray-600 text-white text-xs font-semibold rounded-md transition-colors"
+                        disabled={isUpdating}
+                        className="px-3 py-1.5 bg-gray-500 hover:bg-gray-600 text-white text-xs font-semibold rounded-md transition-colors disabled:opacity-60"
                     >
                         Hủy
                     </button>
                 </div>
             </form>
           ) : (
-            // Hiển thị comment bình thường
             <div key={comment.idComment} className="bg-gray-700 p-3 rounded-md shadow">
               <div className="flex items-start space-x-3">
-                {/* Avatar (tùy chọn) */}
-                {/* <img src={comment.userAvatar || 'default-avatar.png'} alt="avatar" className="w-8 h-8 rounded-full" /> */}
+                 {/* Sử dụng avatar mặc định hoặc chữ cái đầu của userName */}
+                <div className="w-8 h-8 rounded-full bg-gray-600 flex items-center justify-center text-gray-400 text-sm font-semibold flex-shrink-0">
+                    {comment.userName ? comment.userName.charAt(0).toUpperCase() : '?'}
+                </div>
                 <div className="flex-1">
                   <div className="flex justify-between items-center">
-                    <p className="font-semibold text-sky-300 text-sm">{comment.userName || "Người dùng ẩn danh"}</p>
-                    {/* Nút ba chấm và Dropdown */}
-                    {currentUser && currentUser.idUser === comment.idUser && ( // API của bạn trả về idUser trong mỗi comment
-                      <div className="relative" ref={openDropdownId === comment.idComment ? dropdownRef : null}>
+                    <p className="font-semibold text-sky-300 text-sm">
+                        {comment.userName || "Người dùng ẩn danh"} {/* SỬA Ở ĐÂY */}
+                    </p>
+                    {/* Điều kiện hiển thị nút ba chấm (TẠM THỜI DỰA VÀO USERNAME) */}
+                    {/* TODO: THAY BẰNG currentUser.idUser === comment.idUser KHI BACKEND CẬP NHẬT */}
+                    {currentUser && currentUser.userNameUser === comment.userName && (
+                      <div className="relative" ref={(el) => assignDropdownRef(el, comment.idComment)}>
                         <button
                           onClick={() => setOpenDropdownId(openDropdownId === comment.idComment ? null : comment.idComment)}
-                          className="p-1 text-gray-400 hover:text-gray-200 rounded-full"
+                          className="p-1 text-gray-400 hover:text-gray-200 rounded-full focus:outline-none"
+                          aria-label="Tùy chọn bình luận"
                         >
                           <LucideMoreVertical size={16} />
                         </button>
                         {openDropdownId === comment.idComment && (
                           <div className="absolute right-0 mt-1 w-32 bg-gray-600 border border-gray-500 rounded-md shadow-lg z-10 py-1">
                             <button
-                              onClick={() => handleEditComment(comment)}
+                              onClick={() => handleStartEdit(comment)}
                               className="w-full text-left px-3 py-1.5 text-xs text-gray-200 hover:bg-gray-500 flex items-center"
                             >
                               <LucideEdit size={14} className="mr-2" /> Sửa
@@ -248,15 +306,27 @@ const ChapterComments = ({ chapterId, novelId }) => { // Bỏ currentUserId vì 
                     )}
                   </div>
                   <p className="text-gray-200 text-sm whitespace-pre-wrap mt-0.5">{comment.contentComment}</p>
-                  <div className="flex items-center space-x-3 mt-2 text-xs text-gray-400">
-                    <button onClick={() => handleLike(comment.idComment)} className="hover:text-sky-400 flex items-center disabled:opacity-50" disabled={!currentUser}>
+                  <div className="flex items-center space-x-4 mt-2 text-xs text-gray-400">
+                    <button
+                        onClick={() => handleLike(comment)}
+                        className="hover:text-sky-400 flex items-center disabled:opacity-50"
+                        disabled={!currentUser || isSubmitting}
+                        title="Thích"
+                    >
                       <LucideThumbsUp size={14} className="mr-1" /> {comment.likeComment || 0}
                     </button>
-                    <button onClick={() => handleDislike(comment.idComment)} className="hover:text-red-400 flex items-center disabled:opacity-50" disabled={!currentUser}>
+                    <button
+                        onClick={() => handleDislike(comment)}
+                        className="hover:text-red-400 flex items-center disabled:opacity-50"
+                        disabled={!currentUser || isSubmitting}
+                        title="Không thích"
+                    >
                       <LucideThumbsDown size={14} className="mr-1" /> {comment.dislikeComment || 0}
                     </button>
-                    {/* Hiển thị thời gian comment (nếu có) */}
-                    {/* <span className="text-gray-500">{formatTimeAgo(comment.createdAt)}</span> */}
+                    {/* API của bạn không trả về timeComment, nên tạm ẩn */}
+                    {/* <span className="text-gray-500 text-xs">
+                      {comment.timeComment ? formatCommentDate(comment.timeComment) : ''}
+                    </span> */}
                   </div>
                 </div>
               </div>
