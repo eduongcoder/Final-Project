@@ -105,12 +105,12 @@ public class TTSController {
 	@PostMapping("/callback")
 	public ResponseEntity<Void> handleFptCallback(
 	        @RequestBody Map<String, Object> callbackPayload, 
-	        @RequestParam("requestId") String requestId) { 
+	        @RequestParam("requestId") String requestIdFromUrl) { // Đổi tên để phân biệt
 
-	    logger.info("Received callback for requestId [{}]: {}", requestId, callbackPayload);
+	    logger.info("Received callback for requestId [{}]: {}", requestIdFromUrl, callbackPayload);
 
-	    // Bạn có thể bỏ kiểm tra requestId == null vì @RequestParam mặc định là required,
-	    // nếu thiếu nó sẽ không vào được controller.
+	    // Dùng requestId từ URL vì nó là nguồn đáng tin cậy nhất mà bạn kiểm soát
+	    final String requestId = requestIdFromUrl;
 	    
 	    TtsRequest ttsJob = ttsRequestRepository.findById(requestId).orElse(null);
 	    if (ttsJob == null) {
@@ -118,24 +118,25 @@ public class TTSController {
 	        return ResponseEntity.badRequest().build();
 	    }
 	    
-	    // Kiểm tra trạng thái của job để tránh xử lý lại một job đã hoàn thành hoặc thất bại
 	    if (!"PROCESSING".equals(ttsJob.getStatus())) {
 	        logger.warn("Received callback for a job that is not in PROCESSING state. Current state: {}. Ignoring.", ttsJob.getStatus());
-	        return ResponseEntity.ok().build(); // Vẫn trả về 200 OK để FPT không retry
+	        return ResponseEntity.ok().build();
 	    }
 
-	    // --- PHẦN THAY ĐỔI CHÍNH ---
-	    // Dựa trên log thực tế, 'error'=0 là thành công.
-	    Integer errorCode = (Integer) callbackPayload.getOrDefault("error", -1);
+	    // Lấy trạng thái thành công từ payload
+	    // Dùng Boolean.parseBoolean để xử lý an toàn hơn
+	    boolean success = Boolean.parseBoolean(String.valueOf(callbackPayload.get("success")));
 	    
-	    if (errorCode == 0) {
-	        // Lấy link từ trường 'async'
+	    if (success) {
+	        // --- SỬA LẠI THEO ĐÚNG LOG THỰC TẾ ---
+	        // Lấy link từ trường 'message'
 	        String asyncUrl = (String) callbackPayload.get("message");
+	        // ------------------------------------
 
 	        if (asyncUrl == null || asyncUrl.isBlank()) {
-	            logger.error("Callback successful (error=0) but 'async' URL is missing for requestId: {}", requestId);
+	            logger.error("Callback successful but 'message' URL is missing for requestId: {}", requestId);
 	            ttsJob.setStatus("FAILED");
-	            ttsJob.setErrorMessage("Callback successful but async URL was missing.");
+	            ttsJob.setErrorMessage("Callback successful but async URL was missing in 'message' field.");
 	            ttsRequestRepository.save(ttsJob);
 	            return ResponseEntity.badRequest().build();
 	        }
@@ -165,7 +166,7 @@ public class TTSController {
 	    } else { // Xử lý khi FPT báo lỗi
 	        String errorMessage = (String) callbackPayload.getOrDefault("message", "Unknown error from FPT.AI");
 	        ttsJob.setStatus("FAILED");
-	        ttsJob.setErrorMessage("FPT.AI Error Code: " + errorCode + " - " + errorMessage);
+	        ttsJob.setErrorMessage("FPT.AI Error: " + errorMessage);
 	        ttsRequestRepository.save(ttsJob);
 	    }
 
