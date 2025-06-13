@@ -41,30 +41,23 @@ public class AuthorService {
 	INovelMapper novelMapper;
 
 	public List<AuthorRespone> getAll() {
-	    List<Author> authors = authorRepository.findAll();
+	    List<Author> authors = authorRepository.findAllWithNovels();
 
-	    return authors.stream().map(author -> {
-	        AuthorRespone authorResponse = authorMapper.toAuthorRespone(author);
+	    return authors.stream()
+	            .map(author -> {
+	                // 1. Map các trường cơ bản của Author trước
+	                AuthorRespone respone = authorMapper.toAuthorRespone(author);
 
-	        Set<Novel> novels = authorRepository.getNovelByIdAuthor(author.getIdAuthor());
 
-	        Set<NovelResponeForAuthor> novelDTOs = novels.stream()
-	                .map(novel -> NovelResponeForAuthor.builder()
-	                        .idNovel(novel.getIdNovel())
-	                        .nameNovel(novel.getNameNovel())
-	                        .imageNovel(novel.getImageNovel())
-	                        .build())
-	                .collect(Collectors.toSet());
-
-	        authorResponse.setNovels(novelDTOs); 
-	        return authorResponse;
-	    }).toList();
+	                return respone;
+	            })
+	            .collect(Collectors.toList());
 	}
 
 
 	public AuthorRespone getAuthor(String idAuthor) {
 		Author author = authorRepository.findById(idAuthor).get();
-		Set<Novel> novels = authorRepository.getNovelByIdAuthor(idAuthor);
+		Set<Novel> novels = author.getNovels();
 		AuthorRespone authorRespone = authorMapper.toAuthorRespone(author);
 
 		log.info(novels.isEmpty() + "haha");

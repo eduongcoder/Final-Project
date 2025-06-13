@@ -50,9 +50,7 @@ public class NovelService {
 
 	public NovelRespone createNovel(NovelCreatationRequest request, MultipartFile file) throws IOException {
 		Novel novel = novelMapper.toNovel(request);
-		Set<Author> authors = new HashSet<>(authorRepository.findAllById(request.getAuthors()));
-		novel.setAuthors(authors);
-
+	
 		if (file != null && !file.isEmpty()) {
 			UploadFileRespone uploadFileRespone = uploadFileService.uploadFile(file);
 			novel.setImageNovel(uploadFileRespone.getUrl());
@@ -65,8 +63,7 @@ public class NovelService {
 
 		Novel novel = novelMapper.toNovelUpdate(request);
 
-		Set<Author> authors = new HashSet<>(authorRepository.findAllById(request.getAuthors()));
-		novel.setAuthors(authors);
+		
 
 		if (file != null && !file.isEmpty()) {
 
@@ -131,6 +128,10 @@ public class NovelService {
 
 		if (novel.getCategories().remove(category)) {
 			novelRepository.save(novel);
+		}
+		
+		if (category.getNovels().remove(novel)) {
+			categoryRepository.save(category);
 		}
 
 		return novelMapper.toNovelRespone(novel);

@@ -24,5 +24,5 @@ public class NovelCreatationRequest {
 	String rating;
 	Status statusNovel;
   
-	Set<String> authors ;
+
 }

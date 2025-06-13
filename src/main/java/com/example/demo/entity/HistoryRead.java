@@ -1,6 +1,9 @@
 package com.example.demo.entity;
 
 import java.time.LocalDateTime;
+import java.util.List;
+
+import com.example.demo.enums.Role;
 
 import jakarta.persistence.EmbeddedId;
 import jakarta.persistence.Entity;
@@ -15,10 +18,10 @@ import lombok.NoArgsConstructor;
 import lombok.experimental.FieldDefaults;
 
 @Entity
+@Builder
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-@Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class HistoryRead {
 
@@ -35,6 +38,10 @@ public class HistoryRead {
 	@JoinColumn(name = "id_Novel", nullable = false)
 	private Novel novel;
 
+	private String idChapter;
+	
+	private Integer readPlace;
+	
 	private String titleChapter;
 	
 	private LocalDateTime readingTime;

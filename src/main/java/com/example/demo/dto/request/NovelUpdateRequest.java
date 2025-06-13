@@ -26,5 +26,4 @@ public class NovelUpdateRequest {
 	Status statusNovel;
 	String imageNovel;
   
-	Set<String> authors ;
 }
