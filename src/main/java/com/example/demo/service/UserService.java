@@ -10,6 +10,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.example.demo.dto.request.CreateHistoryReadRequest;
 import com.example.demo.dto.request.UserCreationByEmailRequest;
 import com.example.demo.dto.request.UserCreationRequest;
 import com.example.demo.dto.request.UserLoginByEmailRequest;
@@ -179,18 +180,18 @@ public class UserService {
 	
 
 	
-	public UserRespone createHistoryRead(String idNovel, String email, String titleChapter) {
-		User user = userRepository.findByEmailUser(email);
-		Novel novel = novelRepository.findById(idNovel).get();
+	public UserRespone createHistoryRead(CreateHistoryReadRequest readRequest) {
+		User user = userRepository.findByEmailUser(readRequest.getEmail());
+		Novel novel = novelRepository.findById(readRequest.getIdNovel()).get();
 
 		HistoryId historyId = HistoryId.builder()
-										.idNovel(idNovel)
+										.idNovel(readRequest.getIdNovel())
 										.idUser(user.getIdUser())
 										.build();
 
 
 		HistoryRead historyRead = HistoryRead.builder().id(historyId).novel(novel).readingTime(LocalDateTime.now())
-				.titleChapter(titleChapter).user(user).build();
+				.titleChapter(readRequest.getTitleChapter()).readPlace(readRequest.getReadPlace()).user(user).build();
 
 		Optional<HistoryRead> historyReadPast = historyReadRepository.findById(historyId);
 

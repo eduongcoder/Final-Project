@@ -9,17 +9,27 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Duration;
+import java.time.Instant;
+import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+
+import org.apache.http.HttpHeaders;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import com.example.demo.entity.TtsRequest;
+import com.example.demo.repository.ITtsRequestRepository;
 import com.example.demo.service.TextService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
@@ -41,52 +51,187 @@ public class TTSController {
 	ObjectMapper objectMapper;
 	HttpClient httpClient = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build();
 
+	@Autowired
+	ITtsRequestRepository ttsRequestRepository;
+	
 	@NonFinal
 	@Value("${tts.output.directory}")
 	String outputDirectory;
 
+	@NonFinal
+	@Value("${server.base-url}") // Thêm base URL của server bạn, ví dụ: http://localhost:8080
+	private String serverBaseUrl;
+
 	@PostMapping("/speak")
-	public ResponseEntity<?> convert(@RequestBody String text)
-			throws JsonMappingException, JsonProcessingException, IOException, InterruptedException {
+	public ResponseEntity<?> speak(@RequestBody String text) {
+		// 1. Tạo một ID duy nhất cho request này
+		String requestId = UUID.randomUUID().toString();
 
-		Map<String, Object> response = objectMapper.readValue(service.convertTextToSpeech(text), Map.class);
-		String asyncUrl = (String) response.get("async");
+		// 2. Tạo và lưu trạng thái ban đầu vào DB
+		TtsRequest ttsJob = new TtsRequest();
+		ttsJob.setRequestId(requestId);
+		ttsJob.setStatus("PENDING");
+		ttsJob.setCreatedAt(Instant.now());
+		ttsRequestRepository.save(ttsJob);
 
-		if (asyncUrl == null || asyncUrl.isEmpty()) {
-			logger.error("API did not return an async URL. Response: {}", response);
-			return new ResponseEntity<>("Failed to get async URL from TTS service.", HttpStatus.INTERNAL_SERVER_ERROR);
-		}
+		// 3. Tạo callback URL trỏ về server của chính bạn
+		String callbackUrl = serverBaseUrl + "/api/tts/callback";
 
-		// --- PHẦN THAY ĐỔI QUAN TRỌNG ---
-		// Chờ cho đến khi file sẵn sàng trước khi tải về
-		boolean isFileReady = waitForFileReady(asyncUrl);
+		// 4. Gọi service để gửi yêu cầu đến FPT.AI (chạy trong một luồng riêng)
+		// Dùng CompletableFuture để không block luồng chính
+		CompletableFuture.runAsync(() -> {
+			try {
+				service.sendToFptAi(text, requestId, callbackUrl);
+				// Cập nhật trạng thái sau khi gửi thành công
+				ttsJob.setStatus("PROCESSING");
+				ttsRequestRepository.save(ttsJob);
+			} catch (Exception e) {
+				logger.error("Failed to send request to FPT.AI for requestId: {}", requestId, e);
+				ttsJob.setStatus("FAILED");
+				ttsJob.setErrorMessage("Failed to initiate TTS process.");
+				ttsRequestRepository.save(ttsJob);
+			}
+		});
 
-		if (!isFileReady) {
-			logger.error("File was not ready at {} after multiple retries.", asyncUrl);
-			return new ResponseEntity<>("File was not available for download.", HttpStatus.GATEWAY_TIMEOUT);
-		}
-		// --- KẾT THÚC THAY ĐỔI ---
-
-		// Tải file audio từ URL sau khi đã xác nhận nó tồn tại
-		String fileName = extractFileName(asyncUrl);
-		Path filePath = Paths.get(outputDirectory, fileName);
-
-		boolean downloaded = downloadFile(asyncUrl, filePath);
-
-		if (!downloaded) {
-			return new ResponseEntity<>("Failed to download the file.", HttpStatus.INTERNAL_SERVER_ERROR);
-		}
-
-		// Trả về file resource để client có thể truy cập
-		Resource resource = getAudioResource(filePath);
-		if (resource.exists() && resource.isReadable()) {
-			response.put("local_url", "/api/tts/audio/" + fileName); // Trả về một URL cục bộ để client truy cập
-			response.put("status", "success");
-			return new ResponseEntity<>(response, HttpStatus.OK);
-		} else {
-			return new ResponseEntity<>("Could not read the downloaded file.", HttpStatus.INTERNAL_SERVER_ERROR);
-		}
+		// 5. Trả về response ngay lập tức cho client
+		Map<String, String> response = Map.of("message", "Your request is being processed.", "status", "PENDING",
+				"requestId", requestId, "status_check_url", "/api/tts/status/" + requestId);
+		return ResponseEntity.accepted().body(response);
 	}
+
+	@PostMapping("/callback")
+	public ResponseEntity<Void> handleFptCallback(@RequestBody Map<String, Object> callbackPayload) {
+	    logger.info("Received callback from FPT.AI: {}", callbackPayload);
+
+	    // FPT.AI trả về async_link, success, và cả body gốc mà ta đã gửi
+	    // Giả sử body gốc chứa requestId của chúng ta
+	    String requestId = (String) callbackPayload.get("requestId");
+	    boolean success = "true".equalsIgnoreCase(String.valueOf(callbackPayload.get("success")));
+	    
+	    if (requestId == null) {
+	        logger.error("Callback received without a requestId.");
+	        return ResponseEntity.badRequest().build();
+	    }
+
+	    TtsRequest ttsJob = ttsRequestRepository.findById(requestId).orElse(null);
+	    if (ttsJob == null) {
+	        logger.error("Received callback for an unknown requestId: {}", requestId);
+	        return ResponseEntity.badRequest().build();
+	    }
+
+	    if (success) {
+	        String asyncUrl = (String) callbackPayload.get("async_link"); // Kiểm tra lại tên field
+	        
+	        // Chạy việc tải file trong một luồng riêng để không block callback
+	        CompletableFuture.runAsync(() -> {
+	            try {
+	                String fileName = extractFileName(asyncUrl);
+	                Path filePath = Paths.get(outputDirectory, fileName);
+	                boolean downloaded = downloadFile(asyncUrl, filePath);
+
+	                if (downloaded) {
+	                    ttsJob.setStatus("COMPLETED");
+	                    ttsJob.setAudioFilePath(filePath.toString());
+	                } else {
+	                    ttsJob.setStatus("FAILED");
+	                    ttsJob.setErrorMessage("Failed to download the audio file.");
+	                }
+	            } catch (Exception e) {
+	                logger.error("Error during file download in callback for requestId: {}", requestId, e);
+	                ttsJob.setStatus("FAILED");
+	                ttsJob.setErrorMessage("Exception during file download.");
+	            }
+	            ttsRequestRepository.save(ttsJob);
+	        });
+	    } else {
+	        String errorMessage = (String) callbackPayload.get("message");
+	        ttsJob.setStatus("FAILED");
+	        ttsJob.setErrorMessage(errorMessage);
+	        ttsRequestRepository.save(ttsJob);
+	    }
+
+	    return ResponseEntity.ok().build();
+	}
+	
+	@GetMapping("/status/{requestId}")
+	public ResponseEntity<?> getStatus(@PathVariable String requestId) {
+	    return ttsRequestRepository.findById(requestId)
+	            .map(ttsJob -> {
+	                Map<String, Object> response = new HashMap<>();
+	                response.put("requestId", ttsJob.getRequestId());
+	                response.put("status", ttsJob.getStatus());
+
+	                if ("COMPLETED".equals(ttsJob.getStatus())) {
+	                    String fileName = Paths.get(ttsJob.getAudioFilePath()).getFileName().toString();
+	                    response.put("audio_url", "/api/tts/audio/" + fileName);
+	                } else if ("FAILED".equals(ttsJob.getStatus())) {
+	                    response.put("error", ttsJob.getErrorMessage());
+	                }
+	                
+	                return ResponseEntity.ok(response);
+	            })
+	            .orElse(ResponseEntity.notFound().build());
+	}
+	
+	@GetMapping("/audio/{fileName}")
+	public ResponseEntity<Resource> getAudioFile(@PathVariable String fileName) {
+	     try {
+	        Path filePath = Paths.get(outputDirectory).resolve(fileName).normalize();
+	        Resource resource = new UrlResource(filePath.toUri());
+	        if (resource.exists() && resource.isReadable()) {
+	            return ResponseEntity.ok()
+	                    .header(HttpHeaders.CONTENT_TYPE, "audio/mpeg")
+	                    .body(resource);
+	        } else {
+	            return ResponseEntity.notFound().build();
+	        }
+	    } catch (Exception e) {
+	        return ResponseEntity.internalServerError().build();
+	    }
+	}
+	
+//	@PostMapping("/speak")
+//	public ResponseEntity<?> convert(@RequestBody String text)
+//			throws JsonMappingException, JsonProcessingException, IOException, InterruptedException {
+//
+//		Map<String, Object> response = objectMapper.readValue(service.convertTextToSpeech(text), Map.class);
+//		String asyncUrl = (String) response.get("async");
+//
+//		if (asyncUrl == null || asyncUrl.isEmpty()) {
+//			logger.error("API did not return an async URL. Response: {}", response);
+//			return new ResponseEntity<>("Failed to get async URL from TTS service.", HttpStatus.INTERNAL_SERVER_ERROR);
+//		}
+//
+//		// --- PHẦN THAY ĐỔI QUAN TRỌNG ---
+//		// Chờ cho đến khi file sẵn sàng trước khi tải về
+//		boolean isFileReady = waitForFileReady(asyncUrl);
+//
+//		if (!isFileReady) {
+//			logger.error("File was not ready at {} after multiple retries.", asyncUrl);
+//			return new ResponseEntity<>("File was not available for download.", HttpStatus.GATEWAY_TIMEOUT);
+//		}
+//		// --- KẾT THÚC THAY ĐỔI ---
+//
+//		// Tải file audio từ URL sau khi đã xác nhận nó tồn tại
+//		String fileName = extractFileName(asyncUrl);
+//		Path filePath = Paths.get(outputDirectory, fileName);
+//
+//		boolean downloaded = downloadFile(asyncUrl, filePath);
+//
+//		if (!downloaded) {
+//			return new ResponseEntity<>("Failed to download the file.", HttpStatus.INTERNAL_SERVER_ERROR);
+//		}
+//
+//		// Trả về file resource để client có thể truy cập
+//		Resource resource = getAudioResource(filePath);
+//		if (resource.exists() && resource.isReadable()) {
+//			response.put("local_url", "/api/tts/audio/" + fileName); // Trả về một URL cục bộ để client truy cập
+//			response.put("status", "success");
+//			return new ResponseEntity<>(response, HttpStatus.OK);
+//		} else {
+//			return new ResponseEntity<>("Could not read the downloaded file.", HttpStatus.INTERNAL_SERVER_ERROR);
+//		}
+//	}
 
 	private boolean waitForFileReady(String url) throws InterruptedException {
 		int maxRetries = 45; // Thử lại tối đa 10 lần

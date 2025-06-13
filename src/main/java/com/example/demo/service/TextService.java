@@ -14,6 +14,7 @@ import java.util.Map;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
@@ -55,6 +56,34 @@ public class TextService {
 		this.objectMapper = objectMapper;
 		this.httpClient = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build();
 	}
+	
+	public void sendToFptAi(String text, String requestId, String callbackUrl) {
+	    try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
+	        HttpPost request = new HttpPost(API_URL);
+	        request.setHeader("api-key", API_KEY);
+	        request.setHeader("voice", "banmai");
+	        // Quan trọng: Thêm callback_url và truyền vào một body JSON
+	        request.setHeader("callback_url", callbackUrl);
+	        
+	        // Body của request FPT.AI bây giờ nên là một JSON object chứa cả text và requestId
+	        // để chúng ta có thể nhận lại khi callback
+	        Map<String, String> bodyMap = Map.of("text", text, "requestId", requestId);
+	        String jsonBody = new ObjectMapper().writeValueAsString(bodyMap);
+
+	        StringEntity entity = new StringEntity(jsonBody, ContentType.APPLICATION_JSON);
+	        request.setEntity(entity);
+
+	        // Gửi request đi, không cần quan tâm nhiều đến response vì chúng ta chờ callback
+	        try (CloseableHttpResponse response = httpClient.execute(request)) {
+	             String responseBody = EntityUtils.toString(response.getEntity(), "UTF-8");
+	             logger.info("FPT.AI initial response: {}", responseBody);
+	        }
+	    } catch (Exception e) {
+	        throw new RuntimeException("Error sending request to FPT.AI", e);
+	    }
+	}
+	
+	
 
 	public String convertTextToSpeech(String text) {
 		

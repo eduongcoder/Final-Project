@@ -22,6 +22,9 @@ app:
       - GET:/novel/**
       - GET:/api/fetch-html
       - POST:/api/tts/speak
+      - POST:/api/tts/callback
+      - GET:/api/tts/status/**
+      - GET:/api/tts/audio/**
     permission:
       PROJECT:
         - GET:/project/getAll

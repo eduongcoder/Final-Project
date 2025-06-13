@@ -13,6 +13,6 @@ public interface IHistoryReadMapper {
 	@Mapping(target = "nameNovel",ignore = true)
 	HistoryReadRespone toHistoryReadRespone(HistoryRead historyRead); 
 	
-	void updateHistoryRead(HistoryRead updateHistoryRead,@MappingTarget HistoryRead historyRead);
+	void updateHistoryRead(HistoryRead updateHistoryRead,@MappingTarget HistoryRead historyRead); 
 }
   

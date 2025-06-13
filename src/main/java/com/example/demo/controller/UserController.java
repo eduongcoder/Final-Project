@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.example.demo.dto.request.CreateHistoryReadRequest;
 import com.example.demo.dto.request.LoginRequest;
 import com.example.demo.dto.request.UserCreationByEmailRequest;
 import com.example.demo.dto.request.UserCreationRequest;
@@ -106,9 +107,8 @@ public class UserController {
 
 	@PostMapping("/createHistory")
 	@Operation(summary = "Thêm lịch sử đọc chương truyện", description = "Tạo lịch sử đọc chương truyện theo email, ID truyện và tiêu đề chương.")
-	public ApiRespone<UserRespone> createHistory(@RequestParam String idNovel, @RequestParam String email,
-			@RequestParam String titleChapter) {
-		return ApiRespone.<UserRespone>builder().result(userService.createHistoryRead(idNovel, email, titleChapter))
+	public ApiRespone<UserRespone> createHistory( @RequestBody CreateHistoryReadRequest readRequest) {
+		return ApiRespone.<UserRespone>builder().result(userService.createHistoryRead(readRequest))
 				.build();
 	}
 
