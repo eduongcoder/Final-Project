@@ -9,8 +9,9 @@ import com.example.demo.entity.HistoryRead;
 
 @Mapper(componentModel = "spring")
 public interface IHistoryReadMapper {
- 
-	@Mapping(target = "nameNovel",ignore = true)
+//	@Mapping(source = "user.userNameUser", target = "userName")
+
+	@Mapping(source =  "novel.nameNovel",target = "nameNovel")
 	HistoryReadRespone toHistoryReadRespone(HistoryRead historyRead); 
 	
 	void updateHistoryRead(HistoryRead updateHistoryRead,@MappingTarget HistoryRead historyRead); 

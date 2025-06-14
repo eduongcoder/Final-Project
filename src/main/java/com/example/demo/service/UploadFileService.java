@@ -56,6 +56,18 @@ public class UploadFileService {
 		return  UploadFileRespone.builder().public_id(public_ID).url(url).build();
 	}
 	
+	public String uploadAudio(byte[] audioData, String publicId) throws IOException {
+        // resource_type = "video" is used for both audio and video files.
+        Map uploadResult = cloudinary.uploader().upload(audioData, 
+            ObjectUtils.asMap(
+                "public_id", publicId,
+                "resource_type", "video" // DÙNG "video" CHO FILE MP3
+            ));
+            
+        // Lấy ra URL an toàn (https)
+        return (String) uploadResult.get("secure_url");
+    }
+	
 	public String deleteImage(String publicID)  {
 		
 		try {

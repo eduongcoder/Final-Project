@@ -190,21 +190,26 @@ public class UserService {
 										.build();
 
 
-		HistoryRead historyRead = HistoryRead.builder().id(historyId).novel(novel).readingTime(LocalDateTime.now())
+		HistoryRead historyRead = HistoryRead.builder().id(historyId).novel(novel).readingTime(LocalDateTime.now()).idChapter(readRequest.getIdChapter())
 				.titleChapter(readRequest.getTitleChapter()).readPlace(readRequest.getReadPlace()).user(user).build();
 
-		Optional<HistoryRead> historyReadPast = historyReadRepository.findById(historyId);
+		Optional<HistoryRead> historyReadPast = historyReadRepository.findByUserAndIdChapter(user, readRequest.getIdChapter());
 
 		if (!historyReadPast.isEmpty()) {
 
 			historyReadMapper.updateHistoryRead(historyRead, historyReadPast.get());
-			historyReadRepository.save(historyReadPast.get());
-			return userMapper.toUserRespone(user);
-
+			historyRead= historyReadRepository.save(historyReadPast.get());
+			UserRespone userRespone= userMapper.toUserRespone(user);
+			userRespone.setHistoryRead(historyReadRepository.findByIDUser(user.getIdUser()).stream().map(t -> historyReadMapper.toHistoryReadRespone(t)).toList());
+			
+			return userRespone;
 		}
-		historyReadRepository.save(historyRead);
+		historyRead= historyReadRepository.save(historyRead);
 
-		return userMapper.toUserRespone(user);
+		UserRespone userRespone= userMapper.toUserRespone(user);
+		userRespone.setHistoryRead(historyReadRepository.findByIDUser(user.getIdUser()).stream().map(t -> historyReadMapper.toHistoryReadRespone(t)).toList());
+		return userRespone;
+
 	}
 	
 }
